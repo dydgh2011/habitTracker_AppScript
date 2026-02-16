@@ -1,11 +1,11 @@
 /**
- * Daily Entry View — Single-day form-based data entry
+ * Daily Entry View — Single-day form with progress bar and polished inputs
  */
 
 import { YEAR, MONTHS } from '../config.js';
 import { toDateId, getDaysInMonth, formatDateLong, getDayName, toMonthId } from '../utils/date-utils.js';
 import { loadSchema, getSections, getFields, getCustomSections } from '../schema/schema-manager.js';
-import { getEntry, getMonthlyGoal, putMonthlyGoal } from '../db/local-store.js';
+import { getEntry, getMonthlyGoal, putMonthlyGoal } from '../db/data-access.js';
 import { getFieldType } from '../schema/field-types.js';
 import { evaluate } from '../utils/calc-engine.js';
 import { createEmptyDailyGoals, createEmptyFields, createEmptyMonthlyGoals, computeDailyCompletion } from '../components/goal-manager.js';
@@ -45,7 +45,7 @@ export async function renderDailyEntryView(container, state, dateStr) {
         };
     }
 
-    // Check if it's the last day of the month (for monthly goals)
+    // Monthly goals
     const isLastDay = day === daysInMonth;
     const monthId = toMonthId(year, month);
     let monthlyGoalDoc = await getMonthlyGoal(monthId);
@@ -59,22 +59,39 @@ export async function renderDailyEntryView(container, state, dateStr) {
         };
     }
 
-    // Compute prev/next dates
+    // Prev/next dates
     const prevDate = new Date(year, month - 1, day - 1);
     const nextDate = new Date(year, month - 1, day + 1);
     const prevId = toDateId(prevDate.getFullYear(), prevDate.getMonth() + 1, prevDate.getDate());
     const nextId = toDateId(nextDate.getFullYear(), nextDate.getMonth() + 1, nextDate.getDate());
+
+    // Compute initial completion
+    const initialCompletion = entry.dailyGoalCompletion || 0;
 
     container.innerHTML = `
         <div class="daily-entry-container">
             <div class="daily-entry-nav">
                 <button class="month-nav-btn" id="entry-prev">\u2190 Prev</button>
                 <div class="daily-entry-date">
-                    <div class="date-main">${formatDateLong(year, month, day)}</div>
+                    <div class="date-main">
+                        <svg class="date-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="14" height="13" rx="2"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="4" x2="7" y2="2"/><line x1="13" y1="4" x2="13" y2="2"/></svg>
+                        ${formatDateLong(year, month, day)}
+                    </div>
                     <div class="date-sub">${getDayName(year, month, day)}</div>
                 </div>
                 <button class="month-nav-btn" id="entry-next">Next \u2192</button>
             </div>
+
+            <div class="daily-completion-bar" id="completion-bar-section">
+                <div class="daily-completion-header">
+                    <span class="daily-completion-label">Daily Goals</span>
+                    <span class="daily-completion-pct" id="completion-pct">${Math.round(initialCompletion * 100)}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-bar-fill ${getProgressClass(initialCompletion)}" id="completion-fill" style="width: ${initialCompletion * 100}%"></div>
+                </div>
+            </div>
+
             <div id="daily-entry-form"></div>
         </div>
     `;
@@ -89,13 +106,26 @@ export async function renderDailyEntryView(container, state, dateStr) {
 
     const formContainer = document.getElementById('daily-entry-form');
 
+    // Update progress bar
+    const updateProgressBar = () => {
+        const pct = entry.dailyGoalCompletion || 0;
+        const pctEl = document.getElementById('completion-pct');
+        const fillEl = document.getElementById('completion-fill');
+        if (pctEl) pctEl.textContent = `${Math.round(pct * 100)}%`;
+        if (fillEl) {
+            fillEl.style.width = `${pct * 100}%`;
+            fillEl.className = `progress-bar-fill ${getProgressClass(pct)}`;
+        }
+    };
+
     // Save helper
     const saveEntry = async () => {
         entry.dailyGoalCompletion = computeDailyCompletion(entry.dailyGoals, schema);
+        updateProgressBar();
         if (state.syncEngine) {
             await state.syncEngine.saveEntry(entry);
         } else {
-            const { putEntry } = await import('../db/local-store.js');
+            const { putEntry } = await import('../db/data-access.js');
             await putEntry(entry);
         }
     };
@@ -108,10 +138,13 @@ export async function renderDailyEntryView(container, state, dateStr) {
         }
     };
 
+    // Clear form
+    formContainer.innerHTML = '';
+
     // ===== DAILY GOALS SECTION =====
     const dailyGoals = getFields(schema, 'Daily Goals');
     if (dailyGoals.length > 0) {
-        const section = createSection('Daily Goals', 'daily-goals');
+        const section = createSection('Daily Goals', 'daily-goals', '🎯');
         for (const field of dailyGoals) {
             const value = entry.dailyGoals?.[field.name] || false;
             const row = createFieldRow(field.name, null, () => {
@@ -127,17 +160,17 @@ export async function renderDailyEntryView(container, state, dateStr) {
         formContainer.appendChild(section);
     }
 
+
     // ===== CUSTOM SECTIONS =====
     const customSections = getCustomSections(schema);
     for (const sectionName of customSections) {
         const fields = getFields(schema, sectionName);
-        const section = createSection(sectionName, 'custom-section');
+        const section = createSection(sectionName, 'custom-section', '📋');
 
         for (const field of fields) {
             const value = entry.fields?.[sectionName]?.[field.name] ?? null;
 
             if (field.type === 'velocity' && field.calculation) {
-                // Calculated field
                 const computedVal = computeCalcField(field, entry, sectionName, schema);
                 const row = createFieldRow(field.name, field.unit, () => {
                     const span = document.createElement('span');
@@ -155,9 +188,7 @@ export async function renderDailyEntryView(container, state, dateStr) {
                         if (!entry.fields[sectionName]) entry.fields[sectionName] = {};
                         entry.fields[sectionName][field.name] = newVal;
 
-                        // Update calculated fields
                         updateCalcFieldsInForm(entry, sectionName, schema);
-
                         await saveEntry();
                     });
                     input.className = 'field-input';
@@ -174,7 +205,7 @@ export async function renderDailyEntryView(container, state, dateStr) {
     if (isLastDay) {
         const monthlyGoals = getFields(schema, 'Monthly Goals');
         if (monthlyGoals.length > 0) {
-            const section = createSection('Monthly Goals', 'monthly-goals');
+            const section = createSection('Monthly Goals', 'monthly-goals', '🏆');
             for (const field of monthlyGoals) {
                 const value = monthlyGoalDoc.goals?.[field.name] || false;
                 const row = createFieldRow(field.name, null, () => {
@@ -196,10 +227,10 @@ export async function renderDailyEntryView(container, state, dateStr) {
     }
 }
 
-function createSection(title, className) {
+function createSection(title, className, emoji = '') {
     const div = document.createElement('div');
     div.className = 'daily-entry-section';
-    div.innerHTML = `<div class="daily-entry-section-header ${className}">${title}</div>`;
+    div.innerHTML = `<div class="daily-entry-section-header ${className}">${emoji ? `<span class="section-emoji">${emoji}</span>` : ''}${title}</div>`;
     return div;
 }
 
@@ -224,15 +255,28 @@ function createFieldRow(label, unit, createInput) {
     return row;
 }
 
-function computeCalcField(field, entry, sectionName, schema) {
-    if (!field.calculation || !entry?.fields?.[sectionName]) return null;
+function getProgressClass(pct) {
+    if (pct < 0.33) return 'low';
+    if (pct < 0.66) return 'medium';
+    return 'high';
+}
 
-    const sectionFields = entry.fields[sectionName] || {};
+function computeCalcField(field, entry, sectionName, schema) {
+    if (!field.calculation) return null;
+
+    const sectionFields = entry?.fields?.[sectionName] || {};
     const fieldDefs = schema[sectionName] || {};
     const values = {};
 
+    // Initialize ALL fields defined in the schema to null first
+    // This allows the tokenizer to "see" them even if no data is present
+    for (const fname of Object.keys(fieldDefs)) {
+        values[fname] = null;
+    }
+
+    // Overwrite with actual values
     for (const [fname, fval] of Object.entries(sectionFields)) {
-        if (fval !== null && fval !== undefined) {
+        if (fval !== null && fval !== undefined && fval !== '') {
             const fdef = fieldDefs[fname];
             if (fdef?.type === 'time') {
                 const ft = getFieldType('time');

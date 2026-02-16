@@ -13,27 +13,27 @@ export const MONTH_FULL = [
 ];
 
 export const COLORS = {
-    // UI
-    weekend: '#f8f9fa',
-    today: '#fff3cd',
-    header: '#1a73e8',
+    // UI — organic warm tones
+    weekend: '#f7f4f0',
+    today: '#fdf6e3',
+    header: '#4a82b4',
     headerText: '#ffffff',
-    dailyGoalsBg: '#e8f5e9',
-    monthlyGoalsBg: '#fce8e6',
-    lightGray: '#f1f3f4',
-    monthlyGoalCheckbox: '#fff2cc',
+    dailyGoalsBg: '#edf5f0',
+    monthlyGoalsBg: '#faf0ee',
+    lightGray: '#f7f4f0',
+    monthlyGoalCheckbox: '#fdf6e3',
 
-    // Charts
-    chartGreen: '#34A853',
-    chartBlue: '#4285F4',
-    chartRed: '#EA4335',
-    chartYellow: '#FBBC04',
-    chartOrange: '#FF6D01',
-    chartPurple: '#9C27B0',
+    // Charts — refined palette
+    chartGreen: '#3d8b5e',
+    chartBlue: '#4a82b4',
+    chartRed: '#c2544a',
+    chartYellow: '#c49a3c',
+    chartOrange: '#d07a4a',
+    chartPurple: '#7d6baa',
 
-    // Heatmaps
-    greenHeatmap: { min: '#ebedf0', mid: '#9be9a8', max: '#216e39' },
-    redHeatmap: { min: '#ffebee', mid: '#ef5350', max: '#b71c1c' }
+    // Heatmaps — refined gradients
+    greenHeatmap: { min: '#f0eeeb', mid: '#8ec4a0', max: '#2d7a47' },
+    redHeatmap: { min: '#faf0ee', mid: '#dfa090', max: '#993e34' }
 };
 
 // Chart color palette — assigned in order to series

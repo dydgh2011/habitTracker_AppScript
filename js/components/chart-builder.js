@@ -1,9 +1,5 @@
 /**
- * Chart Builder — Dynamic chart generation from schema using Chart.js
- *
- * Generates charts for:
- * 1. Daily Goals Completion % (always present)
- * 2. Grouped numeric fields (based on chartGroup in schema)
+ * Chart Builder — Dynamic chart generation with polished styling
  */
 
 import { YEAR, CHART_PALETTE, COLORS } from '../config.js';
@@ -13,10 +9,57 @@ import { getChartGroups, countDailyGoals } from '../schema/schema-manager.js';
 // Track active chart instances for cleanup
 const activeCharts = new Map();
 
+// Chart group icons
+const GROUP_ICONS = {
+    default: '📊',
+    completion: '✅',
+    time: '⏱',
+    distance: '🏃',
+    calories: '🔥',
+    weight: '⚖️',
+};
+
+function getGroupIcon(groupName) {
+    const lower = groupName.toLowerCase();
+    for (const [key, icon] of Object.entries(GROUP_ICONS)) {
+        if (lower.includes(key)) return icon;
+    }
+    return GROUP_ICONS.default;
+}
+
+/**
+ * Apply global Chart.js defaults for premium look
+ */
+function applyChartDefaults() {
+    if (Chart.defaults._customApplied) return;
+    Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+    Chart.defaults.font.weight = 500;
+    Chart.defaults.color = '#5c5650';
+    Chart.defaults.elements.bar.borderRadius = 4;
+    Chart.defaults.elements.bar.borderSkipped = false;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1a1816';
+    Chart.defaults.plugins.tooltip.titleFont = { weight: 700, size: 13 };
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
+    Chart.defaults.plugins.tooltip.padding = { top: 10, bottom: 10, left: 14, right: 14 };
+    Chart.defaults.plugins.tooltip.cornerRadius = 10;
+    Chart.defaults.plugins.tooltip.displayColors = true;
+    Chart.defaults.plugins.tooltip.boxPadding = 4;
+    Chart.defaults.scale.grid = {
+        color: 'rgba(0, 0, 0, 0.04)',
+        drawBorder: false,
+    };
+    Chart.defaults.scale.ticks = {
+        ...Chart.defaults.scale.ticks,
+        font: { size: 11, weight: 500 },
+    };
+    Chart.defaults._customApplied = true;
+}
+
 /**
  * Build monthly charts (for a single month's view)
  */
 export function buildMonthlyCharts(container, schema, entriesMap, month) {
+    applyChartDefaults();
     container.innerHTML = '';
     destroyCharts('monthly');
 
@@ -35,7 +78,7 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
             return entry ? (entry.dailyGoalCompletion || 0) * 100 : 0;
         });
 
-        const card = createChartCard('Daily Goals Completion (%)');
+        const card = createChartCard('Daily Goals Completion', '%', '✅', 'green');
         const chart = createChart(card.querySelector('canvas'), {
             type: 'line',
             data: {
@@ -44,11 +87,15 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
                     label: 'Completion %',
                     data: completionData,
                     borderColor: COLORS.chartGreen,
-                    backgroundColor: hexToRgba(COLORS.chartGreen, 0.15),
+                    backgroundColor: hexToRgba(COLORS.chartGreen, 0.12),
                     fill: true,
-                    tension: 0.3,
-                    pointRadius: 2,
-                    pointHoverRadius: 5,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: COLORS.chartGreen,
+                    pointBorderWidth: 2,
+                    borderWidth: 2.5,
                 }]
             },
             options: {
@@ -56,8 +103,8 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { title: { display: true, text: 'Day' } },
-                    y: { min: 0, max: 100, title: { display: true, text: '%' } }
+                    x: { title: { display: true, text: 'Day', font: { weight: 600 } } },
+                    y: { min: 0, max: 100, title: { display: true, text: '%', font: { weight: 600 } } }
                 }
             }
         }, 'monthly');
@@ -69,6 +116,7 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
 
     for (const [groupName, group] of chartGroups) {
         const datasets = group.fields.map((field, idx) => {
+            const color = CHART_PALETTE[idx % CHART_PALETTE.length];
             const data = dayLabels.map(d => {
                 const dateId = toDateId(YEAR, month, d);
                 const entry = entriesMap[dateId];
@@ -79,28 +127,31 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
             return {
                 label: field.name,
                 data: data,
-                borderColor: CHART_PALETTE[idx % CHART_PALETTE.length],
-                backgroundColor: hexToRgba(CHART_PALETTE[idx % CHART_PALETTE.length], 0.15),
+                borderColor: color,
+                backgroundColor: hexToRgba(color, group.chartType === 'area' ? 0.12 : 0.7),
                 fill: group.chartType === 'area',
-                tension: 0.3,
-                pointRadius: 2,
-                pointHoverRadius: 5,
+                tension: 0.35,
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: color,
+                pointBorderWidth: 2,
+                borderWidth: 2.5,
             };
         });
 
-        // Determine chart type
         let chartType = 'line';
         if (group.chartType === 'bar' || group.chartType === 'column') chartType = 'bar';
 
-        // Title: use group name or field names
         const title = groupName.startsWith('_ungrouped_')
             ? group.fields[0].name
             : capitalizeFirst(groupName);
 
-        // Unit from first field
         const unit = group.fields[0].unit || '';
+        const icon = getGroupIcon(groupName);
+        const colorClass = ['green', 'blue', 'amber', 'red'][Math.abs(hashCode(groupName)) % 4];
 
-        const card = createChartCard(title + (unit ? ` (${unit})` : ''));
+        const card = createChartCard(title, unit, icon, colorClass);
         createChart(card.querySelector('canvas'), {
             type: chartType,
             data: {
@@ -111,13 +162,17 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: datasets.length > 1, position: 'top' }
+                    legend: {
+                        display: datasets.length > 1,
+                        position: 'top',
+                        labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, font: { weight: 600 } }
+                    }
                 },
                 scales: {
-                    x: { title: { display: true, text: 'Day' } },
+                    x: { title: { display: true, text: 'Day', font: { weight: 600 } } },
                     y: {
                         min: 0,
-                        title: { display: true, text: unit }
+                        title: { display: true, text: unit, font: { weight: 600 } }
                     }
                 }
             }
@@ -132,16 +187,15 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
  * Build yearly charts (for dashboard, all 365 days)
  */
 export function buildYearlyCharts(container, schema, allEntries) {
+    applyChartDefaults();
     container.innerHTML = '';
     destroyCharts('yearly');
 
-    // Build entries map
     const entriesMap = {};
     for (const e of allEntries) {
         entriesMap[e._id] = e;
     }
 
-    // Generate all date labels
     const allDates = [];
     for (let m = 1; m <= 12; m++) {
         const dim = getDaysInMonth(YEAR, m);
@@ -157,7 +211,6 @@ export function buildYearlyCharts(container, schema, allEntries) {
 
     const chartsWrapper = document.createElement('div');
     chartsWrapper.className = 'charts-container';
-    chartsWrapper.style.gridTemplateColumns = '1fr'; // Full width for yearly charts
 
     // ===== Chart 1: Daily Goals Completion Trend =====
     const totalGoals = countDailyGoals(schema);
@@ -167,7 +220,7 @@ export function buildYearlyCharts(container, schema, allEntries) {
             return entry ? (entry.dailyGoalCompletion || 0) * 100 : 0;
         });
 
-        const card = createChartCard('Daily Goals Completion Trend (Entire Year)');
+        const card = createChartCard('Daily Goals Completion Trend', 'Entire Year', '📈', 'green');
         card.querySelector('canvas').style.maxHeight = '300px';
         createChart(card.querySelector('canvas'), {
             type: 'line',
@@ -177,12 +230,12 @@ export function buildYearlyCharts(container, schema, allEntries) {
                     label: 'Completion %',
                     data: completionData,
                     borderColor: COLORS.chartGreen,
-                    backgroundColor: hexToRgba(COLORS.chartGreen, 0.1),
+                    backgroundColor: hexToRgba(COLORS.chartGreen, 0.08),
                     fill: true,
                     tension: 0.2,
                     pointRadius: 0,
-                    pointHoverRadius: 3,
-                    borderWidth: 1.5,
+                    pointHoverRadius: 4,
+                    borderWidth: 2,
                 }]
             },
             options: {
@@ -193,10 +246,10 @@ export function buildYearlyCharts(container, schema, allEntries) {
                     x: {
                         ticks: {
                             maxTicksLimit: 12,
-                            font: { size: 10 }
+                            font: { size: 10, weight: 600 }
                         }
                     },
-                    y: { min: 0, max: 100, title: { display: true, text: '%' } }
+                    y: { min: 0, max: 100, title: { display: true, text: '%', font: { weight: 600 } } }
                 }
             }
         }, 'yearly');
@@ -208,6 +261,7 @@ export function buildYearlyCharts(container, schema, allEntries) {
 
     for (const [groupName, group] of chartGroups) {
         const datasets = group.fields.map((field, idx) => {
+            const color = CHART_PALETTE[idx % CHART_PALETTE.length];
             const data = allDates.map(d => {
                 const entry = entriesMap[d.dateId];
                 const val = entry?.fields?.[field.section]?.[field.name];
@@ -217,13 +271,13 @@ export function buildYearlyCharts(container, schema, allEntries) {
             return {
                 label: field.name,
                 data: data,
-                borderColor: CHART_PALETTE[idx % CHART_PALETTE.length],
-                backgroundColor: hexToRgba(CHART_PALETTE[idx % CHART_PALETTE.length], 0.1),
+                borderColor: color,
+                backgroundColor: hexToRgba(color, group.chartType === 'area' ? 0.08 : 0.7),
                 fill: group.chartType === 'area',
                 tension: 0.2,
                 pointRadius: 0,
-                pointHoverRadius: 3,
-                borderWidth: 1.5,
+                pointHoverRadius: 4,
+                borderWidth: 2,
             };
         });
 
@@ -235,8 +289,10 @@ export function buildYearlyCharts(container, schema, allEntries) {
             : capitalizeFirst(groupName) + ' (Entire Year)';
 
         const unit = group.fields[0].unit || '';
+        const icon = getGroupIcon(groupName);
+        const colorClass = ['green', 'blue', 'amber', 'red'][Math.abs(hashCode(groupName)) % 4];
 
-        const card = createChartCard(title + (unit ? ` - ${unit}` : ''));
+        const card = createChartCard(title, unit, icon, colorClass);
         card.querySelector('canvas').style.maxHeight = '300px';
         createChart(card.querySelector('canvas'), {
             type: chartType,
@@ -248,18 +304,22 @@ export function buildYearlyCharts(container, schema, allEntries) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: datasets.length > 1, position: 'top' }
+                    legend: {
+                        display: datasets.length > 1,
+                        position: 'top',
+                        labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, font: { weight: 600 } }
+                    }
                 },
                 scales: {
                     x: {
                         ticks: {
                             maxTicksLimit: 12,
-                            font: { size: 10 }
+                            font: { size: 10, weight: 600 }
                         }
                     },
                     y: {
                         min: 0,
-                        title: { display: true, text: unit }
+                        title: { display: true, text: unit, font: { weight: 600 } }
                     }
                 }
             }
@@ -272,11 +332,17 @@ export function buildYearlyCharts(container, schema, allEntries) {
 
 // ============ HELPERS ============
 
-function createChartCard(title) {
+function createChartCard(title, subtitle, icon = '📊', colorClass = 'green') {
     const card = document.createElement('div');
     card.className = 'chart-card';
     card.innerHTML = `
-        <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #202124;">${title}</div>
+        <div class="chart-card-header">
+            <div class="chart-card-icon ${colorClass}">${icon}</div>
+            <div>
+                <div class="chart-card-title">${title}</div>
+                ${subtitle ? `<div class="chart-card-subtitle">${subtitle}</div>` : ''}
+            </div>
+        </div>
         <div style="position: relative; height: 240px;">
             <canvas></canvas>
         </div>
@@ -286,12 +352,10 @@ function createChartCard(title) {
 
 function createChart(canvas, config, group) {
     const chart = new Chart(canvas, config);
-
     if (!activeCharts.has(group)) {
         activeCharts.set(group, []);
     }
     activeCharts.get(group).push(chart);
-
     return chart;
 }
 
@@ -313,4 +377,13 @@ function hexToRgba(hex, alpha) {
 
 function capitalizeFirst(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return hash;
 }

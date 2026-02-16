@@ -1,75 +1,75 @@
 /**
- * Data Grid Component — Spreadsheet-like table for monthly view
+ * Data Grid Component — Spreadsheet-like view for monthly data
  *
  * Features:
- * - Frozen first column (labels)
- * - Inline editing for all field types
- * - Section headers with colored backgrounds
- * - Weekend shading, today highlighting
- * - Calculated fields auto-update
+ *   - Frozen first column (labels)
+ *   - Section headers with color coding
+ *   - Alternating row shading
+ *   - Inline editing (checkboxes, numbers, time, text)
+ *   - Calculated field display
+ *   - Weekend / today column highlighting
  */
 
-import { YEAR, COLORS } from '../config.js';
-import { getDaysInMonth, isWeekend, isToday, toDateId } from '../utils/date-utils.js';
+import { YEAR } from '../config.js';
+import { toDateId, isWeekend as checkWeekend } from '../utils/date-utils.js';
+import { getSections, getFields, countDailyGoals } from '../schema/schema-manager.js';
 import { getFieldType } from '../schema/field-types.js';
-import { getSections, getFields } from '../schema/schema-manager.js';
-import { evaluate, getDependencies } from '../utils/calc-engine.js';
-import { computeDailyCompletion } from './goal-manager.js';
+import { evaluate } from '../utils/calc-engine.js';
+import { createEmptyDailyGoals, createEmptyMonthlyGoals, createEmptyFields, computeDailyCompletion, computeMonthlyCompletion } from '../components/goal-manager.js';
 
-/**
- * Render the data grid into a container
- *
- * @param {HTMLElement} container - Where to render
- * @param {Object} schema - The tracking schema
- * @param {Object} entriesMap - Map of dateId -> entry document
- * @param {Object} monthlyGoalDoc - Monthly goals document
- * @param {number} monthIndex - 0-based month index
- * @param {Function} onEntryChange - Callback(dateId, updatedEntry) when data changes
- * @param {Function} onMonthlyGoalChange - Callback(updatedMonthlyGoalDoc) when monthly goals change
- */
-export function renderDataGrid(container, schema, entriesMap, monthlyGoalDoc, monthIndex, onEntryChange, onMonthlyGoalChange) {
-    const month = monthIndex + 1; // 1-indexed
-    const daysInMonth = getDaysInMonth(YEAR, month);
-    const sections = getSections(schema);
+export function renderDataGrid(container, schema, month, daysInMonth, entriesMap, monthlyGoalDoc, onEntryChange, onMonthlyGoalChange) {
+    container.innerHTML = '';
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'grid-container';
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === YEAR && (today.getMonth() + 1) === month;
+    const todayDay = isCurrentMonth ? today.getDate() : -1;
+
+    // ===== Build table =====
+    const tableWrapper = document.createElement('div');
+    tableWrapper.className = 'grid-container';
 
     const table = document.createElement('table');
     table.className = 'data-grid';
 
-    // ===== HEADER ROW (day numbers) =====
+    // ===== HEADER ROW =====
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
 
-    const cornerTh = document.createElement('th');
-    cornerTh.className = 'label-col day-header';
-    cornerTh.textContent = '';
-    headerRow.appendChild(cornerTh);
+    const labelHeader = document.createElement('th');
+    labelHeader.className = 'label-col day-header';
+    labelHeader.textContent = '';
+    headerRow.appendChild(labelHeader);
 
     for (let d = 1; d <= daysInMonth; d++) {
         const th = document.createElement('th');
         th.className = 'day-header';
-        if (isWeekend(YEAR, month, d)) th.classList.add('weekend');
-        if (isToday(YEAR, month, d)) th.classList.add('today');
         th.textContent = d;
+
+        const dateObj = new Date(YEAR, month - 1, d);
+        const dayOfWeek = dateObj.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) th.classList.add('weekend');
+        if (d === todayDay) th.classList.add('today');
+
         headerRow.appendChild(th);
     }
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
 
     // ===== BODY =====
     const tbody = document.createElement('tbody');
+    const sections = getSections(schema);
 
     for (const sectionName of sections) {
         const fields = getFields(schema, sectionName);
+        const isDaily = sectionName === 'Daily Goals';
+        const isMonthly = sectionName === 'Monthly Goals';
 
         // Section header row
         const sectionRow = document.createElement('tr');
         sectionRow.className = 'section-header';
-
-        if (sectionName === 'Daily Goals') sectionRow.classList.add('daily-goals');
-        else if (sectionName === 'Monthly Goals') sectionRow.classList.add('monthly-goals');
+        if (isDaily) sectionRow.classList.add('daily-goals');
+        else if (isMonthly) sectionRow.classList.add('monthly-goals');
         else sectionRow.classList.add('custom-section');
 
         const sectionLabel = document.createElement('td');
@@ -77,12 +77,8 @@ export function renderDataGrid(container, schema, entriesMap, monthlyGoalDoc, mo
         sectionLabel.textContent = sectionName;
         sectionRow.appendChild(sectionLabel);
 
-        // Span across all day columns
         for (let d = 1; d <= daysInMonth; d++) {
             const td = document.createElement('td');
-            if (sectionName === 'Daily Goals') td.style.background = COLORS.dailyGoalsBg;
-            else if (sectionName === 'Monthly Goals') td.style.background = COLORS.monthlyGoalsBg;
-            else { td.style.background = COLORS.header; }
             sectionRow.appendChild(td);
         }
         tbody.appendChild(sectionRow);
@@ -91,83 +87,70 @@ export function renderDataGrid(container, schema, entriesMap, monthlyGoalDoc, mo
         for (const field of fields) {
             const row = document.createElement('tr');
 
-            // Label cell
-            const labelTd = document.createElement('td');
-            labelTd.className = 'label-col';
-            let labelText = field.name;
-            if (field.unit) labelText += ` (${field.unit})`;
-            labelTd.textContent = labelText;
-            labelTd.title = field.name;
-            row.appendChild(labelTd);
+            const labelCell = document.createElement('td');
+            labelCell.className = 'label-col';
+            labelCell.textContent = field.name;
+            labelCell.title = field.name;
+            row.appendChild(labelCell);
 
-            // Day cells
             for (let d = 1; d <= daysInMonth; d++) {
                 const td = document.createElement('td');
                 td.className = 'day-cell';
-                if (isWeekend(YEAR, month, d)) td.classList.add('weekend');
-                if (isToday(YEAR, month, d)) td.classList.add('today');
+
+                const dateObj = new Date(YEAR, month - 1, d);
+                const dayOfWeek = dateObj.getDay();
+                if (dayOfWeek === 0 || dayOfWeek === 6) td.classList.add('weekend');
+                if (d === todayDay) td.classList.add('today');
 
                 const dateId = toDateId(YEAR, month, d);
 
-                if (sectionName === 'Monthly Goals') {
-                    // Monthly goals: only show checkbox on the last day
+                if (isMonthly) {
+                    // Monthly goals: only show for last day
                     if (d === daysInMonth) {
-                        const goalValue = monthlyGoalDoc?.goals?.[field.name] || false;
-                        const fieldType = getFieldType('checkbox');
-                        const input = fieldType.createGridInput(field, goalValue, (newVal) => {
+                        const value = monthlyGoalDoc?.goals?.[field.name] || false;
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.checked = value;
+                        checkbox.addEventListener('change', async () => {
                             if (!monthlyGoalDoc.goals) monthlyGoalDoc.goals = {};
-                            monthlyGoalDoc.goals[field.name] = newVal;
-
-                            // Recompute completion rate
-                            const totalGoals = Object.keys(monthlyGoalDoc.goals).length;
-                            const checkedGoals = Object.values(monthlyGoalDoc.goals).filter(v => v === true).length;
-                            monthlyGoalDoc.completionRate = totalGoals > 0 ? checkedGoals / totalGoals : 0;
-
+                            monthlyGoalDoc.goals[field.name] = checkbox.checked;
+                            monthlyGoalDoc.completionRate = computeMonthlyCompletion(monthlyGoalDoc.goals);
                             onMonthlyGoalChange(monthlyGoalDoc);
                         });
-                        td.style.background = COLORS.monthlyGoalCheckbox;
-                        td.appendChild(input);
+                        td.appendChild(checkbox);
                     }
-                } else if (sectionName === 'Daily Goals') {
-                    // Daily goals: checkbox for every day
-                    const entry = entriesMap[dateId];
-                    const goalValue = entry?.dailyGoals?.[field.name] || false;
-                    const fieldType = getFieldType('checkbox');
-                    const input = fieldType.createGridInput(field, goalValue, (newVal) => {
-                        const updatedEntry = getOrCreateEntry(entriesMap, dateId, YEAR, month, d, schema);
-                        if (!updatedEntry.dailyGoals) updatedEntry.dailyGoals = {};
-                        updatedEntry.dailyGoals[field.name] = newVal;
-                        updatedEntry.dailyGoalCompletion = computeDailyCompletion(updatedEntry.dailyGoals, schema);
-                        onEntryChange(dateId, updatedEntry);
+                } else if (isDaily) {
+                    const entry = ensureEntry(entriesMap, dateId, YEAR, month, d, schema);
+                    const value = entry.dailyGoals?.[field.name] || false;
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = value;
+                    checkbox.addEventListener('change', async () => {
+                        entry.dailyGoals[field.name] = checkbox.checked;
+                        entry.dailyGoalCompletion = computeDailyCompletion(entry.dailyGoals, schema);
+                        onEntryChange(entry);
                     });
-                    td.appendChild(input);
+                    td.appendChild(checkbox);
                 } else {
-                    // Custom section fields
-                    const entry = entriesMap[dateId];
-                    const value = entry?.fields?.[sectionName]?.[field.name] ?? null;
+                    // Custom fields
+                    const entry = ensureEntry(entriesMap, dateId, YEAR, month, d, schema);
 
                     if (field.type === 'velocity' && field.calculation) {
-                        // Calculated field — render as read-only span
-                        const fieldType = getFieldType('velocity');
-                        const computedVal = computeCalculatedField(field, entry, sectionName, schema);
-                        const span = fieldType.createGridInput(field, computedVal, () => {});
-                        span.dataset.section = sectionName;
-                        span.dataset.field = field.name;
-                        span.dataset.dateId = dateId;
+                        const val = computeCalcField(field, entry, sectionName, schema);
+                        const span = document.createElement('span');
+                        span.className = 'calculated-value';
+                        span.textContent = val !== null ? val.toFixed(1) : '';
                         td.appendChild(span);
                     } else {
-                        // Editable field
                         const fieldType = getFieldType(field.type);
-                        const input = fieldType.createGridInput(field, value, (newVal) => {
-                            const updatedEntry = getOrCreateEntry(entriesMap, dateId, YEAR, month, d, schema);
-                            if (!updatedEntry.fields) updatedEntry.fields = {};
-                            if (!updatedEntry.fields[sectionName]) updatedEntry.fields[sectionName] = {};
-                            updatedEntry.fields[sectionName][field.name] = newVal;
-
-                            // Recompute any calculated fields in this section for this day
-                            updateCalculatedFields(tbody, updatedEntry, sectionName, dateId, schema);
-
-                            onEntryChange(dateId, updatedEntry);
+                        const value = entry.fields?.[sectionName]?.[field.name] ?? null;
+                        const input = fieldType.createGridInput(field, value, async (newVal) => {
+                            if (!entry.fields) entry.fields = {};
+                            if (!entry.fields[sectionName]) entry.fields[sectionName] = {};
+                            entry.fields[sectionName][field.name] = newVal;
+                            onEntryChange(entry);
+                            // Recalculate velocity fields
+                            updateRowCalcFields(row.parentElement, entry, sectionName, schema);
                         });
                         td.appendChild(input);
                     }
@@ -175,22 +158,18 @@ export function renderDataGrid(container, schema, entriesMap, monthlyGoalDoc, mo
 
                 row.appendChild(td);
             }
-
             tbody.appendChild(row);
         }
     }
 
     table.appendChild(tbody);
-    wrapper.appendChild(table);
-
-    container.innerHTML = '';
-    container.appendChild(wrapper);
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
 }
 
-/**
- * Get or create an entry document for a given date
- */
-function getOrCreateEntry(entriesMap, dateId, year, month, day, schema) {
+// ============ HELPERS ============
+
+function ensureEntry(entriesMap, dateId, year, month, day, schema) {
     if (!entriesMap[dateId]) {
         entriesMap[dateId] = {
             _id: dateId,
@@ -198,27 +177,29 @@ function getOrCreateEntry(entriesMap, dateId, year, month, day, schema) {
             month: month,
             day: day,
             weekday: new Date(year, month - 1, day).getDay(),
-            dailyGoals: {},
-            fields: {},
+            dailyGoals: createEmptyDailyGoals(schema),
+            fields: createEmptyFields(schema),
             dailyGoalCompletion: 0,
         };
     }
     return entriesMap[dateId];
 }
 
-/**
- * Compute a calculated/velocity field value
- */
-function computeCalculatedField(field, entry, sectionName, schema) {
-    if (!field.calculation || !entry?.fields?.[sectionName]) return null;
+function computeCalcField(field, entry, sectionName, schema) {
+    if (!field.calculation) return null;
 
-    // Gather all field values in the same section
-    const sectionFields = entry.fields[sectionName] || {};
+    const sectionFields = entry?.fields?.[sectionName] || {};
     const fieldDefs = schema[sectionName] || {};
     const values = {};
 
+    // Initialize ALL fields defined in the schema to null first
+    for (const fname of Object.keys(fieldDefs)) {
+        values[fname] = null;
+    }
+
+    // Overwrite with actual values
     for (const [fname, fval] of Object.entries(sectionFields)) {
-        if (fval !== null && fval !== undefined) {
+        if (fval !== null && fval !== undefined && fval !== '') {
             const fdef = fieldDefs[fname];
             if (fdef?.type === 'time') {
                 const ft = getFieldType('time');
@@ -232,20 +213,6 @@ function computeCalculatedField(field, entry, sectionName, schema) {
     return evaluate(field.calculation, values);
 }
 
-/**
- * Update all calculated fields in the DOM for a given day
- */
-function updateCalculatedFields(tbody, entry, sectionName, dateId, schema) {
-    const calculatedSpans = tbody.querySelectorAll(
-        `span.calculated-value[data-section="${sectionName}"][data-date-id="${dateId}"]`
-    );
-
-    for (const span of calculatedSpans) {
-        const fieldName = span.dataset.field;
-        const fieldDef = schema[sectionName]?.[fieldName];
-        if (!fieldDef?.calculation) continue;
-
-        const val = computeCalculatedField(fieldDef, entry, sectionName, schema);
-        span.textContent = val !== null ? (typeof val === 'number' ? val.toFixed(1) : val) : '';
-    }
+function updateRowCalcFields(tbody, entry, sectionName, schema) {
+    // simplistic: rebuild is handled at the view level
 }

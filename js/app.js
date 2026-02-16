@@ -12,6 +12,8 @@ import { renderDailyEntryView } from './views/daily-entry-view.js';
 import { renderSchemaView } from './views/schema-view.js';
 import { initLocalStore } from './db/local-store.js';
 import { SyncEngine } from './db/sync-engine.js';
+import { seedMockData } from './db/mock-data.js';
+import { initTestMode, isTestMode } from './db/test-mode.js';
 
 // Global app state
 const state = {
@@ -26,6 +28,19 @@ const state = {
 async function init() {
     // Initialize IndexedDB
     await initLocalStore();
+
+    // Check for test mode
+    const testModeActive = await initTestMode();
+    if (testModeActive) {
+        document.body.classList.add('test-mode-active');
+    }
+
+    // Seed mock data if database is empty (only if not in test mode)
+    if (!testModeActive) {
+        await seedMockData();
+    } else {
+        showToast('🧪 Test Mode Active — Using Mock Data');
+    }
 
     // Initialize sync engine (handles MongoDB connection if configured)
     state.syncEngine = new SyncEngine();

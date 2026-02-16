@@ -67,15 +67,16 @@ export function renderSchemaEditor(container, schema, onSave) {
             // Column headers for fields
             const colHeaders = document.createElement('div');
             colHeaders.className = 'schema-field-row';
-            colHeaders.style.background = '#f8f9fa';
+            colHeaders.style.background = '#f5f2ee';
             colHeaders.style.fontWeight = '600';
             colHeaders.style.fontSize = '12px';
+            colHeaders.style.color = '#9e9690';
             colHeaders.innerHTML = `
                 <span>Field Name</span>
                 <span>Type</span>
                 <span>Unit</span>
                 <span>Format</span>
-                <span>Calculation / Chart Group</span>
+                <span>Calc / Group</span>
                 <span></span>
             `;
             sectionEl.appendChild(colHeaders);
@@ -200,30 +201,6 @@ export function renderSchemaEditor(container, schema, onSave) {
         });
         container.appendChild(addSectionBtn);
 
-        // Save button
-        const saveArea = document.createElement('div');
-        saveArea.style.marginTop = '24px';
-        saveArea.style.display = 'flex';
-        saveArea.style.gap = '8px';
-
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'btn btn-primary';
-        saveBtn.textContent = 'Save Schema';
-        saveBtn.addEventListener('click', () => {
-            onSave(workingSchema);
-        });
-        saveArea.appendChild(saveBtn);
-
-        const resetBtn = document.createElement('button');
-        resetBtn.className = 'btn btn-secondary';
-        resetBtn.textContent = 'Reset Changes';
-        resetBtn.addEventListener('click', () => {
-            workingSchema = JSON.parse(JSON.stringify(schema));
-            render();
-        });
-        saveArea.appendChild(resetBtn);
-
-        container.appendChild(saveArea);
     }
 
     render();

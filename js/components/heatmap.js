@@ -1,5 +1,5 @@
 /**
- * Heatmap Components
+ * Heatmap Components — with color legend
  *
  * 1. Daily Consistency Heatmap (GitHub-style green, 53x7 grid)
  * 2. Monthly Goals Heatmap (red gradient, 12 boxes)
@@ -9,7 +9,7 @@ import { YEAR, MONTHS, COLORS } from '../config.js';
 import { getDaysInMonth, toDateId, getHeatmapPosition, formatDateLong } from '../utils/date-utils.js';
 
 /**
- * Render the daily consistency heatmap (GitHub-style)
+ * Render the daily consistency heatmap (GitHub-style) with legend
  */
 export function renderDailyHeatmap(container, allEntries) {
     container.innerHTML = '';
@@ -30,7 +30,7 @@ export function renderDailyHeatmap(container, allEntries) {
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     for (let i = 0; i < 7; i++) {
         const label = document.createElement('div');
-        label.textContent = i % 2 === 1 ? dayNames[i] : ''; // Show Mon, Wed, Fri
+        label.textContent = i % 2 === 1 ? dayNames[i] : '';
         label.style.height = '14px';
         label.style.lineHeight = '14px';
         dayLabels.appendChild(label);
@@ -40,6 +40,25 @@ export function renderDailyHeatmap(container, allEntries) {
     // Build the grid
     const grid = document.createElement('div');
     grid.className = 'daily-heatmap';
+
+    // Month labels container (inside wrapper so it scrolls)
+    const monthLabels = document.createElement('div');
+    monthLabels.className = 'heatmap-month-labels';
+
+    for (let m = 0; m < 12; m++) {
+        const label = document.createElement('span');
+        label.textContent = MONTHS[m];
+        // 17px = 14px cell + 3px gap
+        const weeksInMonth = getDaysInMonth(YEAR, m + 1) / 7;
+        label.style.width = `${weeksInMonth * 17}px`;
+        label.style.flexShrink = '0';
+        monthLabels.appendChild(label);
+    }
+
+    const mainContent = document.createElement('div');
+    mainContent.className = 'heatmap-main-content';
+    mainContent.appendChild(monthLabels);
+    mainContent.appendChild(grid);
 
     // Initialize 53 weeks x 7 days grid
     const cells = Array.from({ length: 53 }, () => Array(7).fill(null));
@@ -62,7 +81,7 @@ export function renderDailyHeatmap(container, allEntries) {
         }
     }
 
-    // Render cells (column by column since CSS grid auto-flow is column)
+    // Render cells
     for (let week = 0; week < 53; week++) {
         for (let day = 0; day < 7; day++) {
             const cell = document.createElement('div');
@@ -89,26 +108,8 @@ export function renderDailyHeatmap(container, allEntries) {
         }
     }
 
-    wrapper.appendChild(grid);
+    wrapper.appendChild(mainContent);
     container.appendChild(wrapper);
-
-    // Month labels above the heatmap
-    const monthLabels = document.createElement('div');
-    monthLabels.className = 'heatmap-month-labels';
-
-    // Calculate approximate column position for each month
-    let cumWeeks = 0;
-    for (let m = 0; m < 12; m++) {
-        const firstDay = new Date(YEAR, m, 1);
-        const pos = getHeatmapPosition(YEAR, m + 1, 1);
-        const label = document.createElement('span');
-        label.textContent = MONTHS[m];
-        label.style.width = `${(getDaysInMonth(YEAR, m + 1) / 7) * 16}px`;
-        label.style.flexShrink = '0';
-        monthLabels.appendChild(label);
-    }
-
-    container.insertBefore(monthLabels, container.firstChild);
 }
 
 /**
@@ -140,20 +141,23 @@ export function renderMonthlyHeatmap(container, monthlyGoalDocs) {
         label.textContent = MONTHS[m - 1];
         cell.appendChild(label);
 
-        const box = document.createElement('div');
-        box.className = 'heatmap-box';
-        box.style.backgroundColor = interpolateColor(
-            completion,
-            COLORS.redHeatmap.min,
-            COLORS.redHeatmap.mid,
-            COLORS.redHeatmap.max
-        );
-        cell.appendChild(box);
+        // Circular progress SVG
+        const radius = 42;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (completion * circumference);
 
-        const pctLabel = document.createElement('div');
-        pctLabel.className = 'pct-label';
-        pctLabel.textContent = `${pct}%`;
-        cell.appendChild(pctLabel);
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'circular-progress';
+        progressContainer.innerHTML = `
+            <svg viewBox="0 0 100 100">
+                <circle class="circular-progress-bg" cx="50" cy="50" r="${radius}"></circle>
+                <circle class="circular-progress-bar" cx="50" cy="50" r="${radius}" 
+                    style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset}; stroke: ${interpolateColor(completion, COLORS.redHeatmap.min, COLORS.redHeatmap.mid, COLORS.redHeatmap.max)}">
+                </circle>
+            </svg>
+            <div class="circular-progress-text">${pct}%</div>
+        `;
+        cell.appendChild(progressContainer);
 
         grid.appendChild(cell);
     }
@@ -163,15 +167,8 @@ export function renderMonthlyHeatmap(container, monthlyGoalDocs) {
 
 // ============ COLOR INTERPOLATION ============
 
-/**
- * Interpolate between three colors based on a 0-1 value
- * value 0.0 -> minColor
- * value 0.5 -> midColor
- * value 1.0 -> maxColor
- */
 function interpolateColor(value, minColor, midColor, maxColor) {
     value = Math.max(0, Math.min(1, value));
-
     if (value <= 0.5) {
         return lerpColor(minColor, midColor, value * 2);
     } else {
@@ -179,9 +176,6 @@ function interpolateColor(value, minColor, midColor, maxColor) {
     }
 }
 
-/**
- * Linear interpolation between two hex colors
- */
 function lerpColor(color1, color2, t) {
     const r1 = parseInt(color1.slice(1, 3), 16);
     const g1 = parseInt(color1.slice(3, 5), 16);
