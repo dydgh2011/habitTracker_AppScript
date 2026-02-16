@@ -1,0 +1,40 @@
+{
+    "Daily Log": {
+        "Wake Up Time": {
+            "type": "time",
+            "format": "HH:mm"
+        },
+        "Running Time": {
+            "type": "number",
+            "format": "mm:ss"
+        },
+        "Running Distance": {
+            "type": "number",
+            "unit": "km"
+        },
+        "Running Phase": {
+            "type": "velocity",
+            "unit": "km/h",
+            "calculation": "Running Distance / Running Time"
+        },
+        "Calories Consumed": {
+            "type": "number",
+            "unit": "kcal"
+        },
+        "Protein Powder Intake": {
+            "type": "number",
+            "unit": "g"
+        },
+        "Creatine Intake": {
+            "type": "number",
+            "unit": "g"
+        },
+        "Bench"
+    },
+    "Daly Goals": {
+        "workout at least 10 menutes" :{
+            "type": "checkbox"
+        },
+        ""
+    }
+}
