@@ -8,6 +8,7 @@
  *   - Inline editing (checkboxes, numbers, time, text)
  *   - Calculated field display
  *   - Weekend / today column highlighting
+ *   - Schedule-aware: unscheduled cells are dimmed
  */
 
 import { YEAR } from '../config.js';
@@ -16,6 +17,7 @@ import { getSections, getFields, countDailyGoals } from '../schema/schema-manage
 import { getFieldType } from '../schema/field-types.js';
 import { evaluate } from '../utils/calc-engine.js';
 import { createEmptyDailyGoals, createEmptyMonthlyGoals, createEmptyFields, computeDailyCompletion, computeMonthlyCompletion } from '../components/goal-manager.js';
+import { isFieldScheduledForDate } from '../utils/schedule-utils.js';
 
 export function renderDataGrid(container, schema, month, daysInMonth, entriesMap, monthlyGoalDoc, onEntryChange, onMonthlyGoalChange) {
     container.innerHTML = '';
@@ -104,6 +106,15 @@ export function renderDataGrid(container, schema, month, daysInMonth, entriesMap
 
                 const dateId = toDateId(YEAR, month, d);
 
+                // Check schedule — skip rendering input for unscheduled cells
+                const isScheduled = isFieldScheduledForDate(field.schedule, YEAR, month, d);
+
+                if (!isScheduled && !isMonthly) {
+                    td.classList.add('unscheduled');
+                    row.appendChild(td);
+                    continue;
+                }
+
                 if (isMonthly) {
                     // Monthly goals: only show for last day
                     if (d === daysInMonth) {
@@ -127,7 +138,7 @@ export function renderDataGrid(container, schema, month, daysInMonth, entriesMap
                     checkbox.checked = value;
                     checkbox.addEventListener('change', async () => {
                         entry.dailyGoals[field.name] = checkbox.checked;
-                        entry.dailyGoalCompletion = computeDailyCompletion(entry.dailyGoals, schema);
+                        entry.dailyGoalCompletion = computeDailyCompletion(entry.dailyGoals, schema, YEAR, month, d);
                         onEntryChange(entry);
                     });
                     td.appendChild(checkbox);

@@ -9,6 +9,7 @@ import { getEntry, getMonthlyGoal, putMonthlyGoal } from '../db/data-access.js';
 import { getFieldType } from '../schema/field-types.js';
 import { evaluate } from '../utils/calc-engine.js';
 import { createEmptyDailyGoals, createEmptyFields, createEmptyMonthlyGoals, computeDailyCompletion } from '../components/goal-manager.js';
+import { isFieldScheduledForDate } from '../utils/schedule-utils.js';
 import { navigateTo, showToast } from '../utils/ui-helpers.js';
 
 export async function renderDailyEntryView(container, state, dateStr) {
@@ -120,7 +121,7 @@ export async function renderDailyEntryView(container, state, dateStr) {
 
     // Save helper
     const saveEntry = async () => {
-        entry.dailyGoalCompletion = computeDailyCompletion(entry.dailyGoals, schema);
+        entry.dailyGoalCompletion = computeDailyCompletion(entry.dailyGoals, schema, year, month, day);
         updateProgressBar();
         if (state.syncEngine) {
             await state.syncEngine.saveEntry(entry);
@@ -146,6 +147,7 @@ export async function renderDailyEntryView(container, state, dateStr) {
     if (dailyGoals.length > 0) {
         const section = createSection('Daily Goals', 'daily-goals', '🎯');
         for (const field of dailyGoals) {
+            if (!isFieldScheduledForDate(field.schedule, year, month, day)) continue;
             const value = entry.dailyGoals?.[field.name] || false;
             const row = createFieldRow(field.name, null, () => {
                 const checkbox = getFieldType('checkbox').createInput(field, value, async (newVal) => {
@@ -168,6 +170,7 @@ export async function renderDailyEntryView(container, state, dateStr) {
         const section = createSection(sectionName, 'custom-section', '📋');
 
         for (const field of fields) {
+            if (!isFieldScheduledForDate(field.schedule, year, month, day)) continue;
             const value = entry.fields?.[sectionName]?.[field.name] ?? null;
 
             if (field.type === 'velocity' && field.calculation) {

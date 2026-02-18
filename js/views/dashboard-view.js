@@ -62,40 +62,38 @@ export async function renderDashboardView(container, state) {
     container.innerHTML = `
         <h1 class="page-title">${YEAR} <span class="title-accent">Dashboard</span></h1>
 
-        <div class="stat-cards-row" id="stat-cards">
-            <div class="stat-card green">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon">🔥</div>
-                    <div class="stat-card-label">Current Streak</div>
+        <div class="dashboard-hero">
+            <div class="hero-stats" id="stat-cards">
+                <div class="stat-card green">
+                    <div class="stat-card-header">
+                        <div class="stat-card-icon">🔥</div>
+                        <div class="stat-card-label">Current Streak</div>
+                    </div>
+                    <div class="stat-card-value" id="stat-streak">—</div>
                 </div>
-                <div class="stat-card-value" id="stat-streak">—</div>
-            </div>
-            <div class="stat-card blue">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon">✅</div>
-                    <div class="stat-card-label">Today's Goals</div>
+                <div class="stat-card blue">
+                    <div class="stat-card-header">
+                        <div class="stat-card-icon">✅</div>
+                        <div class="stat-card-label">Today's Goals</div>
+                    </div>
+                    <div class="stat-card-value" id="stat-today">—</div>
                 </div>
-                <div class="stat-card-value" id="stat-today">—</div>
-            </div>
-            <div class="stat-card amber">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon">📊</div>
-                    <div class="stat-card-label">Avg Completion</div>
+                <div class="stat-card amber">
+                    <div class="stat-card-header">
+                        <div class="stat-card-icon">📊</div>
+                        <div class="stat-card-label">Avg Completion</div>
+                    </div>
+                    <div class="stat-card-value" id="stat-avg">—</div>
                 </div>
-                <div class="stat-card-value" id="stat-avg">—</div>
-            </div>
-            <div class="stat-card red">
-                <div class="stat-card-header">
-                    <div class="stat-card-icon">📅</div>
-                    <div class="stat-card-label">Days Tracked</div>
+                <div class="stat-card red">
+                    <div class="stat-card-header">
+                        <div class="stat-card-icon">📅</div>
+                        <div class="stat-card-label">Days Tracked</div>
+                    </div>
+                    <div class="stat-card-value" id="stat-tracked">—</div>
                 </div>
-                <div class="stat-card-value" id="stat-tracked">—</div>
             </div>
-        </div>
-
-        <div class="dashboard-section">
-            <div class="section-title"><span class="section-icon">⏳</span> Time Progression</div>
-            <div class="stat-cards-row" id="time-progression-row">
+            <div class="hero-progression" id="time-progression-row">
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div class="stat-card-icon">🌍</div>
@@ -114,12 +112,8 @@ export async function renderDashboardView(container, state) {
         </div>
 
         <div class="dashboard-section">
-            <div class="section-title"><span class="section-icon">🔴</span> Monthly Goals Progress</div>
+            <div class="section-title"><span class="section-icon">📊</span> Goals Progress</div>
             <div id="monthly-heatmap-container" class="loading"><div class="spinner"></div> Loading...</div>
-        </div>
-
-        <div class="dashboard-section">
-            <div class="section-title"><span class="section-icon">🟢</span> Daily Consistency Heatmap</div>
             <div id="daily-heatmap-container" class="loading"><div class="spinner"></div> Loading...</div>
         </div>
 

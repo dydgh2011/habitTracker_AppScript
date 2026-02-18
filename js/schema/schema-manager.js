@@ -218,6 +218,37 @@ export function validateSchema(schema) {
             if (fieldDef.type === 'velocity' && !fieldDef.calculation) {
                 errors.push(`Calculated field "${sectionName}.${fieldName}" is missing a "calculation" property`);
             }
+
+            // Validate schedule if present
+            if (fieldDef.schedule && fieldDef.schedule.type && fieldDef.schedule.type !== 'everyday') {
+                const s = fieldDef.schedule;
+                const validScheduleTypes = ['everyday', 'weekdays', 'interval', 'dates'];
+                if (!validScheduleTypes.includes(s.type)) {
+                    errors.push(`Field "${sectionName}.${fieldName}" has invalid schedule type "${s.type}"`);
+                }
+                if (s.type === 'weekdays') {
+                    if (!Array.isArray(s.days)) {
+                        errors.push(`Field "${sectionName}.${fieldName}" weekdays schedule missing "days" array`);
+                    } else if (s.days.some(d => d < 0 || d > 6)) {
+                        errors.push(`Field "${sectionName}.${fieldName}" weekdays schedule has invalid day values`);
+                    }
+                }
+                if (s.type === 'interval') {
+                    if (!s.every || s.every < 1) {
+                        errors.push(`Field "${sectionName}.${fieldName}" interval schedule needs "every" >= 1`);
+                    }
+                    if (!s.startDate || !/^\d{4}-\d{2}-\d{2}$/.test(s.startDate)) {
+                        errors.push(`Field "${sectionName}.${fieldName}" interval schedule needs a valid "startDate" (YYYY-MM-DD)`);
+                    }
+                }
+                if (s.type === 'dates') {
+                    if (!Array.isArray(s.dates)) {
+                        errors.push(`Field "${sectionName}.${fieldName}" dates schedule missing "dates" array`);
+                    } else if (s.dates.some(d => !/^\d{4}-\d{2}-\d{2}$/.test(d))) {
+                        errors.push(`Field "${sectionName}.${fieldName}" dates schedule has invalid date values (expected YYYY-MM-DD)`);
+                    }
+                }
+            }
         }
     }
 

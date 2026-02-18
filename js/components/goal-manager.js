@@ -2,24 +2,36 @@
  * Goal Manager — Handles daily and monthly goal checkbox logic
  */
 
-import { countDailyGoals } from '../schema/schema-manager.js';
+import { isFieldScheduledForDate } from '../utils/schedule-utils.js';
 
 /**
  * Compute the daily goal completion rate (0.0 - 1.0)
+ * Only counts goals that are scheduled for the given date.
  * @param {Object} dailyGoals - { "goal name": true/false, ... }
  * @param {Object} schema - The full schema
+ * @param {number} year
+ * @param {number} month - 1-indexed
+ * @param {number} day
  * @returns {number} Completion rate from 0 to 1
  */
-export function computeDailyCompletion(dailyGoals, schema) {
-    const totalGoals = countDailyGoals(schema);
-    if (totalGoals === 0) return 0;
+export function computeDailyCompletion(dailyGoals, schema, year, month, day) {
+    const dailyGoalsDef = schema['Daily Goals'];
+    if (!dailyGoalsDef) return 0;
 
+    let totalGoals = 0;
     let checked = 0;
-    for (const val of Object.values(dailyGoals || {})) {
-        if (val === true) checked++;
+
+    for (const [goalName, goalDef] of Object.entries(dailyGoalsDef)) {
+        if (!isFieldScheduledForDate(goalDef.schedule, year, month, day)) {
+            continue;
+        }
+        totalGoals++;
+        if (dailyGoals && dailyGoals[goalName] === true) {
+            checked++;
+        }
     }
 
-    return checked / totalGoals;
+    return totalGoals > 0 ? checked / totalGoals : 0;
 }
 
 /**

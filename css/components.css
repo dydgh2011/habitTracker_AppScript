@@ -1217,6 +1217,31 @@
 
 /* ============ DASHBOARD ============ */
 
+/* Hero row — stats + time progression side by side */
+.dashboard-hero {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    align-items: stretch;
+    animation: slideUp 0.5s ease;
+    animation-fill-mode: backwards;
+}
+
+.hero-stats {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+}
+
+.hero-progression {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    flex-shrink: 0;
+    width: 220px;
+}
+
 .dashboard-section {
     margin-bottom: var(--spacing-2xl);
     animation: slideUp 0.5s ease;
@@ -1241,6 +1266,11 @@
     border-bottom: 1px solid var(--color-border-light);
 }
 
+/* Spacing between monthly and daily heatmaps inside Goals Progress */
+#monthly-heatmap-container {
+    margin-bottom: var(--spacing-lg);
+}
+
 /* ============ RESPONSIVE ============ */
 
 @media (max-width: 768px) {
@@ -1250,6 +1280,25 @@
 
     .setup-actions {
         flex-direction: column;
+    }
+
+    /* Hero row: stack on mobile */
+    .dashboard-hero {
+        flex-direction: column;
+    }
+
+    .hero-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+    }
+
+    .hero-progression {
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .hero-progression .stat-card {
+        flex: 1;
     }
 
     .stat-cards-row {
@@ -1416,4 +1465,166 @@
     .chart-card {
         padding: var(--spacing-md);
     }
+}
+
+/* ============ SCHEDULE EDITOR ============ */
+
+.schema-schedule-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md) var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border-light);
+    background: rgba(0, 0, 0, 0.015);
+    flex-wrap: wrap;
+}
+
+.schema-schedule-row .schedule-label {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.schedule-type-select {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    background: var(--color-bg-input);
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.schedule-type-select:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-glow);
+}
+
+.schedule-weekday-toggles {
+    display: flex;
+    gap: 2px;
+}
+
+.weekday-toggle {
+    width: 28px;
+    height: 28px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-input);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: var(--font-family);
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.weekday-toggle.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.weekday-toggle:hover:not(.active) {
+    border-color: var(--color-primary);
+    background: var(--color-primary-subtle);
+}
+
+.schedule-interval-config {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.schedule-interval-config input[type="number"] {
+    width: 60px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    text-align: center;
+    background: var(--color-bg-input);
+    color: var(--color-text);
+}
+
+.schedule-interval-config input[type="date"] {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    background: var(--color-bg-input);
+    color: var(--color-text);
+}
+
+.schedule-interval-config input:focus,
+.schedule-dates-config input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-glow);
+}
+
+.schedule-dates-config {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    flex: 1;
+}
+
+.schedule-dates-config input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    background: var(--color-bg-input);
+    color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+    .schema-schedule-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+
+    .schedule-dates-config {
+        width: 100%;
+    }
+
+    .schedule-dates-config input[type="text"] {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+/* ============ UNSCHEDULED CELLS ============ */
+
+.data-grid .day-cell.unscheduled,
+.data-grid tbody tr:nth-child(2n):not(.section-header) .day-cell.unscheduled,
+.data-grid tbody tr:nth-child(2n):not(.section-header) .day-cell.weekend.unscheduled {
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 4px,
+        rgba(0, 0, 0, 0.04) 4px,
+        rgba(0, 0, 0, 0.04) 8px
+    ) !important;
+    cursor: not-allowed;
+    opacity: 0.6;
 }

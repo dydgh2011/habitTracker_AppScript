@@ -4,6 +4,7 @@
 
 import { loadSchema, saveSchema, validateSchema } from '../schema/schema-manager.js';
 import { showToast } from '../utils/ui-helpers.js';
+import { renderSchemaEditor, getEditedSchema } from '../schema/schema-editor.js';
 
 export async function renderSchemaView(container, state) {
     container.innerHTML = `
@@ -37,18 +38,15 @@ export async function renderSchemaView(container, state) {
     const schema = await loadSchema();
     const editorContainer = document.getElementById('schema-editor-container');
 
-    // Dynamically load the schema editor component
-    const { renderSchemaEditor } = await import('../schema/schema-editor.js');
     renderSchemaEditor(editorContainer, schema);
 
     // Save
     document.getElementById('schema-save').addEventListener('click', async () => {
         try {
-            const { getEditedSchema } = await import('../schema/schema-editor.js');
             const editedSchema = getEditedSchema();
-            const errors = validateSchema(editedSchema);
-            if (errors.length > 0) {
-                showToast('Validation errors:\n' + errors.join('\n'), 'error');
+            const result = validateSchema(editedSchema);
+            if (!result.valid) {
+                showToast('Validation errors:\n' + result.errors.join('\n'), 'error');
                 return;
             }
             await saveSchema(editedSchema);
@@ -63,7 +61,6 @@ export async function renderSchemaView(container, state) {
 
     // Export
     document.getElementById('schema-export').addEventListener('click', async () => {
-        const { getEditedSchema } = await import('../schema/schema-editor.js');
         const data = JSON.stringify(getEditedSchema(), null, 2);
         const blob = new Blob([data], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -86,9 +83,9 @@ export async function renderSchemaView(container, state) {
         try {
             const text = await file.text();
             const imported = JSON.parse(text);
-            const errors = validateSchema(imported);
-            if (errors.length > 0) {
-                showToast('Invalid schema:\n' + errors.join('\n'), 'error');
+            const result = validateSchema(imported);
+            if (!result.valid) {
+                showToast('Invalid schema:\n' + result.errors.join('\n'), 'error');
                 return;
             }
             renderSchemaEditor(editorContainer, imported);
