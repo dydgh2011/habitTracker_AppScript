@@ -45,7 +45,7 @@ export function renderNavBar(container, state) {
             <button class="nav-test-toggle ${testMode ? 'active' : ''}" id="nav-test-toggle" title="${testMode ? 'Disable Test Mode' : 'Enable Test Mode'}">
                 🧪
             </button>
-            <div class="nav-sync-status">
+            <div class="nav-sync-status" style="cursor:pointer" title="Click to configure connection">
                 <span class="sync-indicator ${getSyncClass(state)}"></span>
                 <span>${getSyncLabel(state)}</span>
             </div>
@@ -101,24 +101,17 @@ export function renderNavBar(container, state) {
         });
     }
 
-    // Sync/Connection Status click
-    const syncStatus = container.querySelector('.nav-sync-status');
-    if (syncStatus) {
-        syncStatus.style.cursor = 'pointer';
-        syncStatus.title = 'Click to configure connection';
-        syncStatus.addEventListener('click', () => {
-            const isOffline = localStorage.getItem('offlineMode') === 'true';
-            let msg = 'Configure connection settings?';
-            if (isOffline) {
-                msg = 'Switch back to Online Mode?';
-            }
-
-            if (confirm(msg)) {
-                if (isOffline) localStorage.removeItem('offlineMode');
-                window.location.hash = '#/setup';
-            }
-        });
-    }
+    // Sync/Connection Status click — use event delegation on the container so the
+    // listener survives re-renders of the inner HTML.
+    container.addEventListener('click', (e) => {
+        if (!e.target.closest('.nav-sync-status')) return;
+        const isOffline = localStorage.getItem('offlineMode') === 'true';
+        const msg = isOffline ? 'Switch back to Online Mode?' : 'Configure connection settings?';
+        if (confirm(msg)) {
+            if (isOffline) localStorage.removeItem('offlineMode');
+            window.location.hash = '#/setup';
+        }
+    });
 }
 
 function getSyncClass(state) {

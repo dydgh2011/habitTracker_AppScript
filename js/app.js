@@ -10,7 +10,7 @@ import { renderDashboardView } from './views/dashboard-view.js';
 import { renderMonthlyView } from './views/monthly-view.js';
 import { renderDailyEntryView } from './views/daily-entry-view.js';
 import { renderSchemaView } from './views/schema-view.js';
-import { initLocalStore } from './db/local-store.js';
+import { initLocalStore, getAllEntries, getAllMonthlyGoals } from './db/local-store.js';
 import { SyncEngine } from './db/sync-engine.js';
 import { seedMockData } from './db/mock-data.js';
 import { initTestMode, isTestMode } from './db/test-mode.js';
@@ -35,15 +35,40 @@ async function init() {
         document.body.classList.add('test-mode-active');
     }
 
-    // Seed mock data if database is empty (only if not in test mode)
+    // Initialize sync engine first so we can use it during seeding
+    state.syncEngine = new SyncEngine();
+
     if (!testModeActive) {
-        await seedMockData();
+        // Seed mock data into IndexedDB if it is empty
+        const wasSeeded = await seedMockData();
+
+        // If we just seeded AND Firebase is configured, push the seed data up
+        // so the remote DB is populated from the start.
+        if (wasSeeded && state.syncEngine.isConfigured()) {
+            showToast('⬆️ Uploading initial data to Firebase…', 'info');
+            const [entries, goals] = await Promise.all([
+                getAllEntries(YEAR),
+                getAllMonthlyGoals(YEAR),
+            ]);
+            for (const entry of entries) {
+                state.syncEngine.schedulePush('entries', entry._id, entry);
+            }
+            for (const goal of goals) {
+                state.syncEngine.schedulePush('monthlyGoals', goal._id, goal);
+            }
+        }
     } else {
         showToast('🧪 Test Mode Active — Using Mock Data');
     }
 
-    // Initialize sync engine (handles MongoDB connection if configured)
-    state.syncEngine = new SyncEngine();
+    // Pull latest data from Firebase on startup so the local IndexedDB
+    // is always up-to-date with what is actually in the remote database.
+    if (state.syncEngine.isConfigured()) {
+        state.syncEngine.pullAll().then(() => {
+            // Re-render the current view after pull so fresh data is shown
+            route();
+        }).catch(err => console.warn('Initial pull failed:', err));
+    }
 
     // Render navigation
     renderNavBar(document.getElementById('nav-bar'), state);
