@@ -1,7 +1,7 @@
 /**
  * App Entry Point — Hash Router & View Orchestration
  */
-import { MONTHS, YEAR, MONGO_CONFIG_KEY } from './config.js';
+import { MONTHS, YEAR } from './config.js';
 import { monthNameToIndex } from './utils/date-utils.js';
 import { showToast } from './utils/ui-helpers.js';
 import { renderNavBar } from './components/nav-bar.js';
@@ -69,11 +69,11 @@ function route() {
     const view = parts[0] || '';
     const param = parts[1] || '';
 
-    // Check if MongoDB is configured (skip for setup page)
-    const mongoConfig = localStorage.getItem(MONGO_CONFIG_KEY);
+    // Check if Firebase is configured (skip for setup page)
+    const firebaseConfig = localStorage.getItem('firebaseConfig');
     const isOfflineMode = localStorage.getItem('offlineMode') === 'true';
 
-    if (!mongoConfig && !isOfflineMode && view !== 'setup') {
+    if (!firebaseConfig && !isOfflineMode && view !== 'setup') {
         window.location.hash = '#/setup';
         return;
     }

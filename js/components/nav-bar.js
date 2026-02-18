@@ -101,15 +101,21 @@ export function renderNavBar(container, state) {
         });
     }
 
-    // Sync Status click to return online if offline
+    // Sync/Connection Status click
     const syncStatus = container.querySelector('.nav-sync-status');
-    if (syncStatus && localStorage.getItem('offlineMode') === 'true') {
+    if (syncStatus) {
         syncStatus.style.cursor = 'pointer';
-        syncStatus.title = 'Click to switch to Online Mode';
+        syncStatus.title = 'Click to configure connection';
         syncStatus.addEventListener('click', () => {
-            if (confirm('Switch back to Online Mode? You will need to re-configure MongoDB if it was not saved.')) {
-                localStorage.removeItem('offlineMode');
-                window.location.reload();
+            const isOffline = localStorage.getItem('offlineMode') === 'true';
+            let msg = 'Configure connection settings?';
+            if (isOffline) {
+                msg = 'Switch back to Online Mode?';
+            }
+
+            if (confirm(msg)) {
+                if (isOffline) localStorage.removeItem('offlineMode');
+                window.location.hash = '#/setup';
             }
         });
     }

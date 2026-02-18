@@ -48,4 +48,4 @@ export const CHART_PALETTE = [
 
 // Database names
 export const DB_NAME = 'habitTracker';
-export const MONGO_CONFIG_KEY = 'mongoConfig';
+export const FIREBASE_CONFIG_KEY = 'firebaseConfig';

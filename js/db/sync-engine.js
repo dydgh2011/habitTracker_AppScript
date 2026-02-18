@@ -1,5 +1,5 @@
 /**
- * Sync Engine — Bidirectional sync between IndexedDB and MongoDB
+ * Sync Engine — Bidirectional sync between IndexedDB and Firestore
  *
  * Strategy:
  * - All writes go to IndexedDB first (instant)
@@ -8,7 +8,7 @@
  * - Last-write-wins conflict resolution using updatedAt timestamps
  */
 
-import { MongoDBClient } from './mongodb-client.js';
+import { FirebaseClient } from './firebase-client.js';
 import {
     getEntry, putEntry, getAllEntries,
     getMonthlyGoal, putMonthlyGoal, getAllMonthlyGoals,
@@ -19,7 +19,7 @@ import { YEAR } from '../config.js';
 
 export class SyncEngine {
     constructor() {
-        this.client = new MongoDBClient();
+        this.client = new FirebaseClient();
         this.pushTimer = null;
         this.pushing = false;
         this.pulling = false;
@@ -67,7 +67,7 @@ export class SyncEngine {
      * Reload the MongoDB client config (after setup)
      */
     reloadConfig() {
-        this.client = new MongoDBClient();
+        this.client = new FirebaseClient();
     }
 
     // ============ WRITE + SYNC ============
@@ -137,11 +137,10 @@ export class SyncEngine {
             // Push each mutation
             for (const [, mutation] of latest) {
                 try {
-                    await this.client.replaceOne(
+                    await this.client.setDoc(
                         mutation.collection,
-                        { _id: mutation.docId },
-                        mutation.data,
-                        true // upsert
+                        mutation.docId,
+                        mutation.data
                     );
                 } catch (err) {
                     console.error(`Sync push failed for ${mutation.collection}/${mutation.docId}:`, err);
@@ -176,7 +175,7 @@ export class SyncEngine {
 
         try {
             // Pull meta
-            const remoteMeta = await this.client.findOne('meta', { _id: 'app_config' });
+            const remoteMeta = await this.client.getDoc('meta', 'app_config');
             if (remoteMeta) {
                 const localMeta = await getMeta();
                 if (!localMeta || remoteMeta.updatedAt > (localMeta.updatedAt || '')) {
@@ -185,7 +184,7 @@ export class SyncEngine {
             }
 
             // Pull entries for current year
-            const remoteEntries = await this.client.find('entries', { year: YEAR });
+            const remoteEntries = await this.client.getCollection('entries', [['year', '==', YEAR]]);
             for (const remoteEntry of remoteEntries) {
                 const localEntry = await getEntry(remoteEntry._id);
                 if (!localEntry || remoteEntry.updatedAt > (localEntry.updatedAt || '')) {
@@ -194,7 +193,7 @@ export class SyncEngine {
             }
 
             // Pull monthly goals
-            const remoteGoals = await this.client.find('monthlyGoals', { year: YEAR });
+            const remoteGoals = await this.client.getCollection('monthlyGoals', [['year', '==', YEAR]]);
             for (const remoteGoal of remoteGoals) {
                 const localGoal = await getMonthlyGoal(remoteGoal._id);
                 if (!localGoal || remoteGoal.updatedAt > (localGoal.updatedAt || '')) {
