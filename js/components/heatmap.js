@@ -81,7 +81,8 @@ export function renderDailyHeatmap(container, allEntries) {
             if (pos.col < 53) {
                 const dateId = toDateId(YEAR, m, d);
                 const entry = entriesMap[dateId];
-                const completion = entry ? (entry.dailyGoalCompletion || 0) : 0;
+                // Fallback to top-level property for legacy data structure (check for truthy value if nested is missing)
+                const completion = entry ? (entry.dailyGoalCompletion ?? 0) : 0;
                 cells[pos.col][pos.row] = {
                     completion,
                     date: formatDateLong(YEAR, m, d),

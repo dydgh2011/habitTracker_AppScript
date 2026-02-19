@@ -2,9 +2,10 @@
  * Chart Builder — Dynamic chart generation with polished styling
  */
 
-import { YEAR, CHART_PALETTE, COLORS } from '../config.js';
-import { getDaysInMonth, toDateId } from '../utils/date-utils.js';
+import { YEAR, CHART_PALETTE, COLORS, MONTHS } from '../config.js';
+import { getDaysInMonth, toDateId, getWeekNumber } from '../utils/date-utils.js';
 import { getChartGroups, countDailyGoals } from '../schema/schema-manager.js';
+import { getMeta, putMeta } from '../db/local-store.js';
 
 // Track active chart instances for cleanup
 const activeCharts = new Map();
@@ -186,146 +187,240 @@ export function buildMonthlyCharts(container, schema, entriesMap, month) {
 /**
  * Build yearly charts (for dashboard, all 365 days)
  */
-export function buildYearlyCharts(container, schema, allEntries) {
+/**
+ * Load dashboard chart config from local store (or generate default)
+ */
+export async function getDashboardChartConfig(schema) {
+    const meta = await getMeta();
+    if (meta && meta.dashboardCharts) {
+        return meta.dashboardCharts;
+    }
+
+    // Generate default from schema groups
+    const chartGroups = getChartGroups(schema);
+    const defaultConfig = [];
+
+    // 1. Daily Goals Completion (Always first)
+    defaultConfig.push({
+        id: 'daily_goals_completion',
+        title: 'Daily Goals Completion',
+        type: 'line',
+        series: [{ type: 'completion', label: 'Completion %', color: COLORS.chartGreen }]
+    });
+
+    // 2. Add schema groups
+    for (const [groupName, group] of chartGroups) {
+        const title = groupName.startsWith('_ungrouped_')
+            ? group.fields[0].name
+            : capitalizeFirst(groupName);
+
+        defaultConfig.push({
+            id: `chart_${hashCode(groupName)}`,
+            title: title,
+            type: group.chartType || 'line',
+            series: group.fields.map(f => ({
+                type: 'field',
+                section: f.section,
+                field: f.name,
+                label: f.name
+            }))
+        });
+    }
+
+    return defaultConfig;
+}
+
+/**
+ * Save dashboard chart config
+ */
+export async function saveDashboardChartConfig(config) {
+    const meta = await getMeta() || { _id: 'app_config' };
+    meta.dashboardCharts = config;
+    await putMeta(meta);
+}
+
+/**
+ * Aggregate data based on date range
+ */
+function aggregateData(dataPoints, aggregationType) {
+    if (aggregationType === 'daily') {
+        return dataPoints.map(d => ({
+            label: d.label || d.dateId,
+            value: d.value
+        }));
+    }
+
+    const groups = new Map();
+
+    for (const point of dataPoints) {
+        let key;
+        const dateStr = point.label || point.dateId;
+        if (aggregationType === 'weekly') {
+            const d = new Date(dateStr);
+            const week = getWeekNumber(d);
+            key = `W${week}`;
+        } else { // monthly
+            const d = new Date(dateStr);
+            key = MONTHS[d.getMonth()];
+        }
+
+        if (!groups.has(key)) {
+            groups.set(key, { count: 0, sum: 0, label: key });
+        }
+
+        if (point.value !== null) {
+            const g = groups.get(key);
+            g.count++;
+            g.sum += point.value;
+        }
+    }
+
+    return Array.from(groups.values()).map(g => ({
+        label: g.label,
+        value: g.count > 0 ? g.sum / g.count : null // Average
+    }));
+}
+
+/**
+ * Build Dashboard Charts with Adaptive Aggregation
+ */
+export async function buildDashboardCharts(container, schema, allEntries) {
     applyChartDefaults();
     container.innerHTML = '';
-    destroyCharts('yearly');
+    destroyCharts('dashboard');
 
+    const config = await getDashboardChartConfig(schema);
     const entriesMap = {};
-    for (const e of allEntries) {
-        entriesMap[e._id] = e;
-    }
+    for (const e of allEntries) entriesMap[e._id] = e;
+
+    // 1. Determine Date Range & Aggregation
+    // For now, we assume "Yearly" (all dates in YEAR)
+    // Future: customizable range
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const todayId = toDateId(currentYear, now.getMonth() + 1, now.getDate());
 
     const allDates = [];
     for (let m = 1; m <= 12; m++) {
         const dim = getDaysInMonth(YEAR, m);
         for (let d = 1; d <= dim; d++) {
-            allDates.push({ month: m, day: d, dateId: toDateId(YEAR, m, d) });
+            const dateId = toDateId(YEAR, m, d);
+            if (YEAR < currentYear || dateId <= todayId) {
+                allDates.push({ dateId });
+            }
         }
     }
 
-    const dateLabels = allDates.map(d => {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${months[d.month - 1]} ${d.day}`;
-    });
+    // Determine aggregation level based on populated data span
+    const totalVisibleDays = allDates.length;
+    let aggregation = 'daily';
 
+    if (totalVisibleDays > 180) aggregation = 'monthly';
+    else if (totalVisibleDays > 45) aggregation = 'weekly';
+
+    // 2. Build Charts
     const chartsWrapper = document.createElement('div');
     chartsWrapper.className = 'charts-container';
 
-    // ===== Chart 1: Daily Goals Completion Trend =====
-    const totalGoals = countDailyGoals(schema);
-    if (totalGoals > 0) {
-        const completionData = allDates.map(d => {
-            const entry = entriesMap[d.dateId];
-            return entry ? (entry.dailyGoalCompletion || 0) * 100 : 0;
-        });
+    for (const chartConfig of config) {
+        const datasets = [];
+        let labels = [];
 
-        const card = createChartCard('Daily Goals Completion Trend', 'Entire Year', '📈', 'green');
-        card.querySelector('canvas').style.maxHeight = '300px';
-        createChart(card.querySelector('canvas'), {
-            type: 'line',
-            data: {
-                labels: dateLabels,
-                datasets: [{
-                    label: 'Completion %',
-                    data: completionData,
-                    borderColor: COLORS.chartGreen,
-                    backgroundColor: hexToRgba(COLORS.chartGreen, 0.08),
-                    fill: true,
-                    tension: 0.2,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    borderWidth: 2,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: {
-                        ticks: {
-                            maxTicksLimit: 12,
-                            font: { size: 10, weight: 600 }
-                        }
-                    },
-                    y: { min: 0, max: 100, title: { display: true, text: '%', font: { weight: 600 } } }
-                }
-            }
-        }, 'yearly');
-        chartsWrapper.appendChild(card);
-    }
-
-    // ===== Dynamic yearly charts =====
-    const chartGroups = getChartGroups(schema);
-
-    for (const [groupName, group] of chartGroups) {
-        const datasets = group.fields.map((field, idx) => {
-            const color = CHART_PALETTE[idx % CHART_PALETTE.length];
-            const data = allDates.map(d => {
+        for (const [idx, series] of chartConfig.series.entries()) {
+            const rawData = allDates.map(d => {
                 const entry = entriesMap[d.dateId];
-                const val = entry?.fields?.[field.section]?.[field.name];
-                return val !== null && val !== undefined ? parseFloat(val) : null;
+                let val = null;
+
+                if (series.type === 'completion') {
+                    val = entry ? (entry.dailyGoalCompletion || 0) * 100 : 0;
+                } else if (series.type === 'field') {
+                    const rawV = entry?.fields?.[series.section]?.[series.field] ?? entry?.[series.field];
+                    if (rawV !== null && rawV !== undefined && rawV !== '') {
+                        const parsed = parseFloat(rawV);
+                        val = isNaN(parsed) ? null : parsed;
+                    } else {
+                        val = null;
+                    }
+                }
+                return { label: d.dateId, value: val };
             });
 
-            return {
-                label: field.name,
-                data: data,
+            // Filter nulls if needed (only skip series if it has literally NO data points)
+            const hasData = rawData.some(d => d.value !== null);
+            if (!hasData && series.type !== 'completion') continue; // Skip empty series, keep completion
+
+            // Aggregate
+            const aggregated = aggregateData(rawData, aggregation);
+
+            // Set labels from the first series that has data or the first series in total
+            if (labels.length === 0 || idx === 0) {
+                labels = aggregated.map(d => d.label);
+            }
+
+            const color = CHART_PALETTE[idx % CHART_PALETTE.length];
+            datasets.push({
+                label: series.label,
+                data: aggregated.map(d => d.value),
                 borderColor: color,
-                backgroundColor: hexToRgba(color, group.chartType === 'area' ? 0.08 : 0.7),
-                fill: group.chartType === 'area',
-                tension: 0.2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-                borderWidth: 2,
-            };
-        });
+                backgroundColor: hexToRgba(color, 0.1),
+                fill: false,
+                tension: 0.3,
+                pointRadius: 5, // Increased visibility
+                pointHoverRadius: 7,
+                pointHitRadius: 12,
+                pointBorderWidth: 2,
+                pointBackgroundColor: '#fff',
+                borderWidth: 3,
+                showLine: true,
+                spanGaps: true
+            });
+        }
 
-        let chartType = 'line';
-        if (group.chartType === 'bar' || group.chartType === 'column') chartType = 'bar';
+        if (datasets.length === 0) continue; // Skip chart if no data
 
-        const title = groupName.startsWith('_ungrouped_')
-            ? group.fields[0].name + ' (Entire Year)'
-            : capitalizeFirst(groupName) + ' (Entire Year)';
-
-        const unit = group.fields[0].unit || '';
-        const icon = getGroupIcon(groupName);
-        const colorClass = ['green', 'blue', 'amber', 'red'][Math.abs(hashCode(groupName)) % 4];
-
-        const card = createChartCard(title, unit, icon, colorClass);
+        const card = createChartCard(
+            chartConfig.title,
+            `${capitalizeFirst(aggregation)} Average`,
+            getGroupIcon(chartConfig.title),
+            'blue'
+        );
         card.querySelector('canvas').style.maxHeight = '300px';
+
+        // Add "Edit" button for custom charts (future)
+        // const editBtn = document.createElement('button');
+        // editBtn.innerHTML = '⚙️';
+        // editBtn.className = 'chart-edit-btn';
+        // card.querySelector('.chart-card-header').appendChild(editBtn);
+
         createChart(card.querySelector('canvas'), {
-            type: chartType,
-            data: {
-                labels: dateLabels,
-                datasets: datasets,
-            },
+            type: chartConfig.type || 'line',
+            data: { labels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: datasets.length > 1,
-                        position: 'top',
-                        labels: { usePointStyle: true, pointStyle: 'circle', padding: 16, font: { weight: 600 } }
-                    }
+                    legend: { display: datasets.length > 1 }
                 },
+                spanGaps: true, // Show disconnected points
                 scales: {
-                    x: {
-                        ticks: {
-                            maxTicksLimit: 12,
-                            font: { size: 10, weight: 600 }
-                        }
-                    },
-                    y: {
-                        min: 0,
-                        title: { display: true, text: unit, font: { weight: 600 } }
-                    }
+                    x: { ticks: { maxTicksLimit: 12, font: { size: 10 } } },
+                    y: { beginAtZero: true }
                 }
             }
-        }, 'yearly');
+        }, 'dashboard');
+
         chartsWrapper.appendChild(card);
     }
+
+    // Add "Customize Charts" card at the end
+    const addCard = document.createElement('div');
+    addCard.className = 'chart-card add-chart-card';
+    addCard.style.cssText = 'display:flex; align-items:center; justify-content:center; cursor:pointer; min-height:240px; border:2px dashed var(--color-border); box-shadow:none;';
+    addCard.innerHTML = `<div style="text-align:center; color:var(--color-text-muted);"><div style="font-size:24px; margin-bottom:8px;">➕</div><div style="font-size:14px; font-weight:600;">Customize Charts</div></div>`;
+    addCard.addEventListener('click', () => {
+        document.dispatchEvent(new CustomEvent('open-chart-config'));
+    });
+    chartsWrapper.appendChild(addCard);
 
     container.appendChild(chartsWrapper);
 }

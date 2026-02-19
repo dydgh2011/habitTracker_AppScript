@@ -14,7 +14,7 @@ Since this project is a static web application, you can serve it using any simpl
 1. Open your terminal in the project root directory.
 2. Run the following command:
    ```bash
-   npx http-server -p 3000
+   n
    ```
 3. Open your browser and navigate to:
    [http://localhost:3000](http://localhost:3000)

@@ -162,6 +162,26 @@ export class SyncEngine {
         }
     }
 
+    /**
+     * Push schema to Firebase
+     */
+    async pushSchema(schema) {
+        if (!this.client.isConfigured()) return;
+        this.setStatus('syncing');
+        try {
+            await this.client.setDoc('meta', 'app_config', {
+                schema,
+                year: YEAR,
+                updatedAt: new Date().toISOString()
+            });
+            this.setStatus('idle');
+        } catch (err) {
+            console.error('Schema push failed:', err);
+            this.setStatus('error');
+            throw err;
+        }
+    }
+
     // ============ PULL ============
 
     /**

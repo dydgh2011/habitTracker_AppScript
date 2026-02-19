@@ -6,7 +6,8 @@ import { YEAR } from '../config.js';
 import { loadSchema } from '../schema/schema-manager.js';
 import { getAllEntries, getAllMonthlyGoals } from '../db/data-access.js';
 import { renderDailyHeatmap, renderMonthlyHeatmap } from '../components/heatmap.js';
-import { buildYearlyCharts } from '../components/chart-builder.js';
+import { buildDashboardCharts } from '../components/chart-builder.js';
+import { renderChartConfigModal } from '../components/chart-config-modal.js';
 import { toDateId } from '../utils/date-utils.js';
 
 /**
@@ -138,9 +139,31 @@ export async function renderDashboardView(container, state) {
     const dailyHeatmapContainer = document.getElementById('daily-heatmap-container');
     renderDailyHeatmap(dailyHeatmapContainer, allEntries);
 
-    // Render yearly charts
+    // Render yearly charts (now Dashboard Charts with aggregation)
     const yearlyChartsContainer = document.getElementById('yearly-charts-container');
-    buildYearlyCharts(yearlyChartsContainer, schema, allEntries);
+    buildDashboardCharts(yearlyChartsContainer, schema, allEntries);
+
+    // Event Listeners for Custom Charts
+    document.removeEventListener('open-chart-config', handleOpenConfig); // Prevent duplicates
+    document.addEventListener('open-chart-config', handleOpenConfig);
+
+    document.removeEventListener('charts-updated', handleChartsUpdated);
+    document.addEventListener('charts-updated', handleChartsUpdated);
+
+    function handleOpenConfig() {
+        renderChartConfigModal(document.body, schema);
+    }
+
+    function handleChartsUpdated() {
+        // Reload dashboard logic
+        const container = document.getElementById('yearly-charts-container');
+        if (container) {
+            container.innerHTML = '<div class="spinner"></div> Loading...';
+            // Re-fetch schema in case it changed (unlikely for charts, but good practice)
+            // For charts we just need to re-read config from meta, which buildDashboardCharts does.
+            buildDashboardCharts(container, schema, allEntries);
+        }
+    }
 
     // Render time progression
     renderTimeProgression();
@@ -163,7 +186,9 @@ export async function renderDashboardView(container, state) {
 
             renderMonthlyHeatmap(monthlyHeatmapContainer, freshGoals);
             renderDailyHeatmap(dailyHeatmapContainer, freshEntries);
-            buildYearlyCharts(yearlyChartsContainer, schema, freshEntries);
+            renderMonthlyHeatmap(monthlyHeatmapContainer, freshGoals);
+            renderDailyHeatmap(dailyHeatmapContainer, freshEntries);
+            buildDashboardCharts(yearlyChartsContainer, schema, freshEntries);
         } catch (err) {
             console.error('Dashboard sync error:', err);
         }
