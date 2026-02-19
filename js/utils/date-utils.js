@@ -1,4 +1,4 @@
-import { YEAR, MONTHS } from '../config.js';
+import { YEAR, MONTHS, MONTH_FULL } from '../config.js';
 
 /**
  * Get number of days in a given month (1-indexed month)
@@ -82,10 +82,27 @@ export function getDayName(year, month, day) {
 }
 
 /**
- * Get the month index (0-based) from a short month name
+ * Get the month index (0-based) from a short/full month name or numeric string
  */
 export function monthNameToIndex(name) {
-    return MONTHS.findIndex(m => m.toLowerCase() === name.toLowerCase());
+    if (!name) return -1;
+    const lower = name.toLowerCase();
+
+    // Check short names (Jan, Feb...)
+    const shortIdx = MONTHS.findIndex(m => m.toLowerCase() === lower);
+    if (shortIdx >= 0) return shortIdx;
+
+    // Check full names (January, February...)
+    const fullIdx = MONTH_FULL.findIndex(m => m.toLowerCase() === lower);
+    if (fullIdx >= 0) return fullIdx;
+
+    // Try numeric string (1-12)
+    const num = parseInt(name);
+    if (!isNaN(num) && num >= 1 && num <= 12 && !name.includes('-')) {
+        return num - 1;
+    }
+
+    return -1;
 }
 
 /**

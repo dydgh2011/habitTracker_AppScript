@@ -9,6 +9,7 @@
  */
 
 import { DB_NAME } from '../config.js';
+import { isTestMode } from './test-mode.js';
 
 const DB_VERSION = 1;
 let db = null;
@@ -126,6 +127,7 @@ export function getMeta() {
 }
 
 export function putMeta(doc) {
+    if (isTestMode()) return Promise.resolve();
     doc._id = 'app_config';
     doc.updatedAt = new Date().toISOString();
     return putOne('meta', doc);
@@ -161,6 +163,7 @@ export function getAllEntries(year) {
  * Save/update a daily entry
  */
 export function putEntry(doc) {
+    if (isTestMode()) return Promise.resolve();
     doc.updatedAt = new Date().toISOString();
     return putOne('entries', doc);
 }
@@ -169,6 +172,7 @@ export function putEntry(doc) {
  * Delete a daily entry
  */
 export function deleteEntry(dateId) {
+    if (isTestMode()) return Promise.resolve();
     return deleteOne('entries', dateId);
 }
 
@@ -194,6 +198,7 @@ export function getAllMonthlyGoals(year) {
  * Save/update monthly goals
  */
 export function putMonthlyGoal(doc) {
+    if (isTestMode()) return Promise.resolve();
     doc.updatedAt = new Date().toISOString();
     return putOne('monthlyGoals', doc);
 }
@@ -205,6 +210,7 @@ export function putMonthlyGoal(doc) {
  * @param {Object} mutation - { collection, operation, docId, data }
  */
 export function addToSyncQueue(mutation) {
+    if (isTestMode()) return Promise.resolve();
     mutation.createdAt = new Date().toISOString();
     return putOne('syncQueue', mutation);
 }
@@ -220,6 +226,7 @@ export function getSyncQueue() {
  * Clear the sync queue (after successful sync)
  */
 export function clearSyncQueue() {
+    if (isTestMode()) return Promise.resolve();
     return new Promise((resolve, reject) => {
         const tx = getDb().transaction('syncQueue', 'readwrite');
         const store = tx.objectStore('syncQueue');
@@ -230,8 +237,26 @@ export function clearSyncQueue() {
 }
 
 /**
+ * Delete ALL data from every store (entries, monthlyGoals, meta, syncQueue)
+ */
+export function clearAllData() {
+    if (isTestMode()) return Promise.resolve();
+    const stores = ['entries', 'monthlyGoals', 'meta', 'syncQueue'];
+    return new Promise((resolve, reject) => {
+        const tx = getDb().transaction(stores, 'readwrite');
+        let done = 0;
+        for (const name of stores) {
+            const req = tx.objectStore(name).clear();
+            req.onsuccess = () => { if (++done === stores.length) resolve(); };
+            req.onerror = () => reject(req.error);
+        }
+    });
+}
+
+/**
  * Delete a single sync queue item
  */
 export function deleteSyncQueueItem(key) {
+    if (isTestMode()) return Promise.resolve();
     return deleteOne('syncQueue', key);
 }

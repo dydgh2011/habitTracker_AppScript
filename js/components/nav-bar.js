@@ -4,6 +4,7 @@
 
 import { MONTHS, YEAR } from '../config.js';
 import { isTestMode, enableTestMode, disableTestMode } from '../db/test-mode.js';
+import { clearAllData } from '../db/local-store.js';
 
 const NAV_ICONS = {
     dashboard: `<svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="7" rx="1.5"/><rect x="11" y="3" width="6" height="4" rx="1.5"/><rect x="3" y="12" width="6" height="5" rx="1.5"/><rect x="11" y="9" width="6" height="8" rx="1.5"/></svg>`,
@@ -17,6 +18,12 @@ export function renderNavBar(container, state) {
     const currentView = hash.replace('#/', '').split('/')[0];
     const currentMonth = hash.replace('#/', '').split('/')[1] || '';
     const testMode = isTestMode();
+
+    // Clean up any orphaned #nav-links that was previously moved to document.body
+    // This happens on mobile where we detach it from the nav container for z-index reasons.
+    // Without this, the old element (with .open class) lingers visible after navigation.
+    const orphan = document.body.querySelector(':scope > #nav-links');
+    if (orphan) orphan.remove();
 
     container.innerHTML = `
         <span class="nav-brand">Habit Tracker ${YEAR}</span>
@@ -45,6 +52,9 @@ export function renderNavBar(container, state) {
             <button class="nav-test-toggle ${testMode ? 'active' : ''}" id="nav-test-toggle" title="${testMode ? 'Disable Test Mode' : 'Enable Test Mode'}">
                 🧪
             </button>
+            <button class="nav-delete-all" id="nav-delete-all" title="Delete all local data">
+                🗑️
+            </button>
             <div class="nav-sync-status" style="cursor:pointer" title="Click to configure connection">
                 <span class="sync-indicator ${getSyncClass(state)}"></span>
                 <span>${getSyncLabel(state)}</span>
@@ -66,6 +76,23 @@ export function renderNavBar(container, state) {
         testToggle.addEventListener('click', () => {
             if (isTestMode()) disableTestMode();
             else enableTestMode();
+        });
+    }
+
+    // Delete All Data button
+    const deleteAllBtn = document.getElementById('nav-delete-all');
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', async () => {
+            if (!confirm('⚠️ Delete ALL local data?\n\nThis will wipe all entries, monthly goals, and settings from this device. This cannot be undone.')) return;
+            try {
+                await clearAllData();
+                // Tell app.js not to re-seed after this intentional wipe
+                localStorage.setItem('skipSeed', 'true');
+                location.reload();
+            } catch (err) {
+                console.error('Failed to clear data:', err);
+                alert('Failed to delete data: ' + err.message);
+            }
         });
     }
 

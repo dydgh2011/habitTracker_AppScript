@@ -22,6 +22,7 @@ export function isTestMode() {
  */
 export function enableTestMode() {
     sessionStorage.setItem(STORAGE_KEY, 'true');
+    localStorage.removeItem('skipSeed'); // User explicitly wants data
     location.reload();
 }
 

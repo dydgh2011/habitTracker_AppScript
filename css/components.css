@@ -119,7 +119,7 @@
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg) var(--spacing-lg);
+    padding: var(--spacing-xl) var(--spacing-xl);
     position: relative;
     overflow: hidden;
     transition: all 0.25s ease;
@@ -196,7 +196,7 @@
 }
 
 .stat-card-value {
-    font-size: 40px;
+    font-size: 52px;
     font-weight: 800;
     letter-spacing: -0.05em;
     color: var(--color-text);
@@ -1239,7 +1239,131 @@
     flex-direction: column;
     gap: var(--spacing-md);
     flex-shrink: 0;
-    width: 220px;
+    width: 280px;
+}
+
+/* Single card that fills the progression column */
+.progression-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    /* allow secondary ring to overflow card edge */
+}
+
+/* ============ DUAL PROGRESS RINGS ============ */
+
+.dual-progress-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-md) 0 var(--spacing-lg);
+}
+
+/* Scene container — positions the two rings relative to each other */
+.dual-rings-scene {
+    position: relative;
+    /* Size = main ring + overflow for secondary ring */
+    width: 200px;
+    height: 200px;
+}
+
+/* Main (month) ring */
+.dual-ring-main {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 160px;
+    height: 160px;
+}
+
+.dual-ring-main svg {
+    width: 160px;
+    height: 160px;
+    display: block;
+}
+
+.dual-ring-main svg circle,
+.dual-ring-secondary svg circle {
+    fill: none;
+    stroke-linecap: round;
+}
+
+/* Centered text inside main ring */
+.dual-ring-label-main {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+.dual-ring-pct {
+    display: block;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--color-text);
+    line-height: 1;
+}
+
+.dual-ring-name {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-info);
+    margin-top: 2px;
+}
+
+/* Secondary (year) ring — positioned bottom-right */
+.dual-ring-secondary {
+    position: absolute;
+    /* bottom/right set inline from JS */
+    bottom: -17px;
+    right: -17px;
+    background: var(--glass-bg);
+    border-radius: 50%;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
+    border: 2px solid var(--glass-border);
+}
+
+.dual-ring-secondary svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Centered text inside secondary ring */
+.dual-ring-label-sec {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+.dual-ring-pct-sec {
+    display: block;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+    line-height: 1;
+}
+
+.dual-ring-name-sec {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-primary);
+    margin-top: 1px;
 }
 
 .dashboard-section {
@@ -1307,11 +1431,11 @@
     }
 
     .stat-card {
-        padding: var(--spacing-md);
+        padding: var(--spacing-lg);
     }
 
     .stat-card-value {
-        font-size: 24px;
+        font-size: 32px;
     }
 
     .month-title-bar {
@@ -1422,7 +1546,7 @@
     }
 
     .stat-card-value {
-        font-size: 20px;
+        font-size: 26px;
     }
 
     .monthly-heatmap-cell .heatmap-box {
@@ -1618,13 +1742,11 @@
 .data-grid .day-cell.unscheduled,
 .data-grid tbody tr:nth-child(2n):not(.section-header) .day-cell.unscheduled,
 .data-grid tbody tr:nth-child(2n):not(.section-header) .day-cell.weekend.unscheduled {
-    background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 4px,
-        rgba(0, 0, 0, 0.04) 4px,
-        rgba(0, 0, 0, 0.04) 8px
-    ) !important;
+    background: repeating-linear-gradient(45deg,
+            transparent,
+            transparent 4px,
+            rgba(0, 0, 0, 0.04) 4px,
+            rgba(0, 0, 0, 0.04) 8px) !important;
     cursor: not-allowed;
     opacity: 0.6;
 }

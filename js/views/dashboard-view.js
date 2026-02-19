@@ -94,19 +94,12 @@ export async function renderDashboardView(container, state) {
                 </div>
             </div>
             <div class="hero-progression" id="time-progression-row">
-                <div class="stat-card">
+                <div class="stat-card progression-card">
                     <div class="stat-card-header">
-                        <div class="stat-card-icon">🌍</div>
-                        <div class="stat-card-label">${YEAR} Year Progress</div>
+                        <div class="stat-card-icon">📅</div>
+                        <div class="stat-card-label">Time Progress</div>
                     </div>
-                    <div id="year-progress-container" class="progression-circle-wrapper"></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-card-header">
-                        <div class="stat-card-icon">🌙</div>
-                        <div id="month-progress-label" class="stat-card-label">Month Progress</div>
-                    </div>
-                    <div id="month-progress-container" class="progression-circle-wrapper"></div>
+                    <div id="dual-progress-container" class="dual-progress-wrapper"></div>
                 </div>
             </div>
         </div>
@@ -199,26 +192,72 @@ function renderTimeProgression() {
     const monthCompletion = Math.min(1, Math.max(0, dayOfMonth / daysInMonth));
     const monthPct = Math.round(monthCompletion * 100);
 
-    document.getElementById('month-progress-label').textContent = `${monthNames[currentMonthIdx]} Progress`;
-
-    renderProgressCircle(document.getElementById('year-progress-container'), yearCompletion, yearPct, 'var(--color-primary)');
-    renderProgressCircle(document.getElementById('month-progress-container'), monthCompletion, monthPct, 'var(--color-info)');
+    renderDualProgressRings(
+        document.getElementById('dual-progress-container'),
+        monthCompletion, monthPct, monthNames[currentMonthIdx],
+        yearCompletion, yearPct, YEAR
+    );
 }
 
-function renderProgressCircle(container, completion, pct, color) {
-    const radius = 42;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (completion * circumference);
+/**
+ * Renders overlapping dual progress rings:
+ * - Large main ring = current month
+ * - Small secondary ring (60% size) = year, offset bottom-right
+ */
+function renderDualProgressRings(container, monthPct, monthPctRound, monthName, yearPct, yearPctRound, year) {
+    // Main (month) ring dimensions
+    const mainSize = 160;
+    const mainR = 60;
+    const mainCx = 80;
+    const mainCy = 80;
+    const mainViewBox = 160;
+    const mainCircumference = 2 * Math.PI * mainR;
+    const mainOffset = mainCircumference - (monthPct * mainCircumference);
+
+    // Secondary (year) ring — 60% of main
+    const secSize = Math.round(mainSize * 0.6); // 96px
+    const secR = 34;
+    const secCx = 48;
+    const secCy = 48;
+    const secViewBox = 96;
+    const secCircumference = 2 * Math.PI * secR;
+    const secOffset = secCircumference - (yearPct * secCircumference);
+
+    // Offset: bottom-right, overlapping by ~25% of main diameter
+    const overlapOffset = Math.round(mainSize * 0.42);
 
     container.innerHTML = `
-        <div class="circular-progress" style="width: 120px; height: 120px;">
-            <svg viewBox="0 0 100 100">
-                <circle class="circular-progress-bg" cx="50" cy="50" r="${radius}"></circle>
-                <circle class="circular-progress-bar" cx="50" cy="50" r="${radius}" 
-                    style="stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset}; stroke: ${color}">
-                </circle>
-            </svg>
-            <div class="circular-progress-text" style="font-size: 22px;">${pct}%</div>
+        <div class="dual-rings-scene">
+            <!-- Main ring: Current Month -->
+            <div class="dual-ring-main">
+                <svg width="${mainSize}" height="${mainSize}" viewBox="0 0 ${mainViewBox} ${mainViewBox}">
+                    <circle class="circular-progress-bg" cx="${mainCx}" cy="${mainCy}" r="${mainR}" stroke-width="9"></circle>
+                    <circle class="circular-progress-bar" cx="${mainCx}" cy="${mainCy}" r="${mainR}"
+                        stroke-width="9"
+                        style="stroke-dasharray: ${mainCircumference.toFixed(2)}; stroke-dashoffset: ${mainOffset.toFixed(2)}; stroke: var(--color-info);"
+                        transform="rotate(-90 ${mainCx} ${mainCy})"
+                    ></circle>
+                </svg>
+                <div class="dual-ring-label-main">
+                    <span class="dual-ring-pct">${monthPctRound}%</span>
+                    <span class="dual-ring-name">${monthName}</span>
+                </div>
+            </div>
+            <!-- Secondary ring: Year -->
+            <div class="dual-ring-secondary" style="width:${secSize}px; height:${secSize}px; bottom:-${Math.round(secSize * 0.18)}px; right:-${Math.round(secSize * 0.18)}px;">
+                <svg width="${secSize}" height="${secSize}" viewBox="0 0 ${secViewBox} ${secViewBox}">
+                    <circle class="circular-progress-bg" cx="${secCx}" cy="${secCy}" r="${secR}" stroke-width="7"></circle>
+                    <circle class="circular-progress-bar" cx="${secCx}" cy="${secCy}" r="${secR}"
+                        stroke-width="7"
+                        style="stroke-dasharray: ${secCircumference.toFixed(2)}; stroke-dashoffset: ${secOffset.toFixed(2)}; stroke: var(--color-primary);"
+                        transform="rotate(-90 ${secCx} ${secCy})"
+                    ></circle>
+                </svg>
+                <div class="dual-ring-label-sec">
+                    <span class="dual-ring-pct-sec">${yearPctRound}%</span>
+                    <span class="dual-ring-name-sec">${year}</span>
+                </div>
+            </div>
         </div>
     `;
 }

@@ -368,6 +368,27 @@ body::before {
     box-shadow: 0 0 10px var(--color-warning-bg);
 }
 
+.nav-delete-all {
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-xs);
+}
+
+.nav-delete-all:hover {
+    background: var(--color-error-bg);
+    border-color: var(--color-error);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
 .nav-sync-status {
     display: flex;
     align-items: center;

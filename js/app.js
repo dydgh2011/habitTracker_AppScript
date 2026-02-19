@@ -39,35 +39,41 @@ async function init() {
     state.syncEngine = new SyncEngine();
 
     if (!testModeActive) {
-        // Seed mock data into IndexedDB if it is empty
-        const wasSeeded = await seedMockData();
+        // Skip seeding (and Firebase pull) if the user just wiped data intentionally
+        const skipSeed = localStorage.getItem('skipSeed') === 'true';
+        if (skipSeed) {
+            // Keep the flag — don't remove it, so subsequent reloads also skip seeding
+        } else {
+            // Seed mock data into IndexedDB if it is empty
+            const wasSeeded = await seedMockData();
 
-        // If we just seeded AND Firebase is configured, push the seed data up
-        // so the remote DB is populated from the start.
-        if (wasSeeded && state.syncEngine.isConfigured()) {
-            showToast('⬆️ Uploading initial data to Firebase…', 'info');
-            const [entries, goals] = await Promise.all([
-                getAllEntries(YEAR),
-                getAllMonthlyGoals(YEAR),
-            ]);
-            for (const entry of entries) {
-                state.syncEngine.schedulePush('entries', entry._id, entry);
+            // If we just seeded AND Firebase is configured, push the seed data up
+            // so the remote DB is populated from the start.
+            if (wasSeeded && state.syncEngine.isConfigured()) {
+                showToast('⬆️ Uploading initial data to Firebase…', 'info');
+                const [entries, goals] = await Promise.all([
+                    getAllEntries(YEAR),
+                    getAllMonthlyGoals(YEAR),
+                ]);
+                for (const entry of entries) {
+                    state.syncEngine.schedulePush('entries', entry._id, entry);
+                }
+                for (const goal of goals) {
+                    state.syncEngine.schedulePush('monthlyGoals', goal._id, goal);
+                }
             }
-            for (const goal of goals) {
-                state.syncEngine.schedulePush('monthlyGoals', goal._id, goal);
+
+            // Pull latest data from Firebase on startup so the local IndexedDB
+            // is always up-to-date with what is actually in the remote database.
+            if (state.syncEngine.isConfigured()) {
+                state.syncEngine.pullAll().then(() => {
+                    // Re-render the current view after pull so fresh data is shown
+                    route();
+                }).catch(err => console.warn('Initial pull failed:', err));
             }
         }
     } else {
         showToast('🧪 Test Mode Active — Using Mock Data');
-    }
-
-    // Pull latest data from Firebase on startup so the local IndexedDB
-    // is always up-to-date with what is actually in the remote database.
-    if (state.syncEngine.isConfigured()) {
-        state.syncEngine.pullAll().then(() => {
-            // Re-render the current view after pull so fresh data is shown
-            route();
-        }).catch(err => console.warn('Initial pull failed:', err));
     }
 
     // Render navigation
@@ -115,8 +121,28 @@ function route() {
 
         case 'month': {
             state.currentView = 'month';
-            const monthIdx = param ? monthNameToIndex(param) : new Date().getMonth();
-            renderMonthlyView(app, state, monthIdx >= 0 ? monthIdx : new Date().getMonth());
+            let monthIdx = -1;
+
+            if (param) {
+                // Try robust parsing via our updated utility
+                monthIdx = monthNameToIndex(param);
+
+                // If still not found, try YYYY-MM format
+                if (monthIdx === -1 && param.includes('-')) {
+                    const parts = param.split('-');
+                    const m = parseInt(parts[1]);
+                    if (!isNaN(m) && m >= 1 && m <= 12) {
+                        monthIdx = m - 1;
+                    }
+                }
+            }
+
+            // Fallback to current month if invalid
+            if (monthIdx === -1) {
+                monthIdx = new Date().getMonth();
+            }
+
+            renderMonthlyView(app, state, monthIdx);
             break;
         }
 
