@@ -49,12 +49,14 @@ export function renderNavBar(container, state) {
             </a>
         </div>
         <div class="nav-controls">
-            <button class="nav-test-toggle ${testMode ? 'active' : ''}" id="nav-test-toggle" title="${testMode ? 'Disable Test Mode' : 'Enable Test Mode'}">
-                🧪
-            </button>
-            <button class="nav-delete-all" id="nav-delete-all" title="Delete all local data">
-                🗑️
-            </button>
+            <!--
+                <button class="nav-test-toggle ${testMode ? 'active' : ''}" id="nav-test-toggle" title="${testMode ? 'Disable Test Mode' : 'Enable Test Mode'}">
+                    🧪
+                </button>
+                <button class="nav-delete-all" id="nav-delete-all" title="Delete all local data">
+                    🗑️
+                </button>
+            -->
             <div class="nav-sync-status" style="cursor:pointer" title="Click to configure connection">
                 <span class="sync-indicator ${getSyncClass(state)}"></span>
                 <span>${getSyncLabel(state)}</span>

@@ -527,19 +527,27 @@
 /* Daily consistency heatmap (GitHub-style) */
 .daily-heatmap {
     display: inline-grid;
-    grid-template-rows: repeat(7, 14px);
+    grid-template-rows: repeat(7, var(--heatmap-cell-size));
     grid-auto-flow: column;
-    gap: 3px;
+    gap: var(--heatmap-gap);
     margin-bottom: var(--spacing-sm);
 }
 
 .daily-heatmap .heatmap-cell {
-    width: 14px;
-    height: 14px;
+    width: var(--heatmap-cell-size);
+    height: var(--heatmap-cell-size);
     border-radius: 3px;
     cursor: pointer;
     position: relative;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    border: 1px solid transparent;
+    /* Reserve space for border */
+}
+
+.daily-heatmap .heatmap-cell.is-today {
+    border: 2px solid var(--color-warning);
+    box-shadow: 0 0 5px var(--color-warning-bg);
+    z-index: 5;
 }
 
 .daily-heatmap .heatmap-cell:hover {
@@ -568,36 +576,39 @@
 
 /* Month labels above the daily heatmap */
 .heatmap-month-labels {
-    display: flex;
-    gap: 0;
+    position: relative;
+    height: 16px;
     font-size: 10px;
     color: var(--color-text-muted);
-    margin-bottom: 6px;
-    padding-left: 30px;
+    margin-bottom: 4px;
     font-weight: 600;
 }
 
 .heatmap-main-content {
     display: flex;
     flex-direction: column;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
 }
 
 .heatmap-day-labels {
     display: grid;
-    grid-template-rows: repeat(7, 14px);
-    gap: 3px;
-    margin-right: 6px;
+    grid-template-rows: repeat(7, var(--heatmap-cell-size));
+    gap: var(--heatmap-gap);
+    margin-right: 8px;
     font-size: 10px;
     color: var(--color-text-muted);
     align-items: center;
     font-weight: 600;
+    flex-shrink: 0;
 }
 
 .heatmap-wrapper {
     display: flex;
     align-items: start;
-    overflow-x: auto;
     padding-bottom: var(--spacing-sm);
+    width: 100%;
 }
 
 /* Heatmap Legend */
@@ -1327,8 +1338,8 @@
     right: -17px;
     background: var(--glass-bg);
     border-radius: 50%;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
-    border: 2px solid var(--glass-border);
+    /* box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10); */
+    /* border: 2px solid var(--glass-border); */
 }
 
 .dual-ring-secondary svg {
@@ -1431,11 +1442,27 @@
     }
 
     .stat-card {
-        padding: var(--spacing-lg);
+        padding: var(--spacing-md);
     }
 
     .stat-card-value {
         font-size: 32px;
+    }
+
+    /* Disable hover animations on mobile */
+    .stat-card:hover,
+    .chart-card:hover,
+    .card:hover {
+        transform: none !important;
+        box-shadow: var(--shadow-sm) !important;
+        border-color: var(--glass-border) !important;
+    }
+
+    .monthly-heatmap-cell:hover,
+    .monthly-heatmap-cell:hover .heatmap-box {
+        transform: none !important;
+        box-shadow: none !important;
+        border-color: none !important;
     }
 
     .month-title-bar {
@@ -1473,7 +1500,7 @@
     }
 
     .monthly-heatmap {
-        gap: var(--spacing-sm);
+        gap: var(--spacing-md);
     }
 
     .monthly-heatmap-cell .heatmap-box {
@@ -1534,11 +1561,12 @@
     .dashboard-section {
         overflow-x: auto;
     }
+
 }
 
 @media (max-width: 480px) {
     .setup-card {
-        padding: var(--spacing-lg) var(--spacing-md);
+        padding: var(--spacing-md) var(--spacing-md);
     }
 
     .stat-cards-row {
@@ -1546,7 +1574,7 @@
     }
 
     .stat-card-value {
-        font-size: 26px;
+        font-size: 24px;
     }
 
     .monthly-heatmap-cell .heatmap-box {
@@ -1555,7 +1583,7 @@
     }
 
     .monthly-heatmap-cell .month-label {
-        font-size: 10px;
+        font-size: 14px;
     }
 
     .daily-entry-nav {
@@ -1589,6 +1617,277 @@
     .chart-card {
         padding: var(--spacing-md);
     }
+
+    .dual-progress-wrapper {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: var(--spacing-md) 0 var(--spacing-lg);
+    }
+
+    /* Scene container — positions the two rings relative to each other */
+    .dual-rings-scene {
+        position: relative;
+        /* Size = main ring + overflow for secondary ring */
+        width: 200px;
+        height: 200px;
+    }
+
+    /* Main (month) ring */
+    .dual-ring-main {
+        position: absolute;
+        top: -20px;
+        left: -20px;
+        width: 180px;
+        height: 180px;
+    }
+
+    .dual-ring-main svg {
+        width: 180px;
+        height: 180px;
+        display: block;
+    }
+
+    .dual-ring-main svg circle,
+    .dual-ring-secondary svg circle {
+        fill: none;
+        stroke-linecap: round;
+    }
+
+    /* Centered text inside main ring */
+    .dual-ring-label-main {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+    }
+
+    .dual-ring-pct {
+        display: block;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        color: var(--color-text);
+        line-height: 1;
+    }
+
+    .dual-ring-name {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--color-info);
+        margin-top: 2px;
+    }
+
+    /* Secondary (year) ring — positioned bottom-right */
+    .dual-ring-secondary {
+        position: absolute;
+        /* bottom/right set inline from JS */
+        bottom: 0 !important;
+        right: 0 !important;
+        /* background: var(--glass-bg); */
+        border-radius: 50%;
+        background: none;
+        /* box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10); */
+        /* border: 2px solid var(--glass-border); */
+    }
+
+    .dual-ring-secondary svg {
+        display: block;
+        width: 120%;
+        height: 120%;
+    }
+
+    /* Centered text inside secondary ring */
+    .dual-ring-label-sec {
+        position: absolute;
+        top: 60%;
+        left: 60%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+    }
+
+    .dual-ring-pct-sec {
+        display: block;
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--color-text);
+        line-height: 1;
+    }
+
+    .dual-ring-name-sec {
+        display: block;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--color-primary);
+        margin-top: 1px;
+    }
+
+    .dashboard-section {
+        margin-bottom: var(--spacing-2xl);
+        animation: slideUp 0.5s ease;
+        animation-fill-mode: backwards;
+    }
+
+    .dashboard-section:nth-child(2) {
+        animation-delay: 0.05s;
+    }
+
+    .dashboard-section:nth-child(3) {
+        animation-delay: 0.1s;
+    }
+
+    .dashboard-section:nth-child(4) {
+        animation-delay: 0.15s;
+    }
+
+    .dashboard-section .section-title {
+        margin-bottom: var(--spacing-lg);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 1px solid var(--color-border-light);
+    }
+
+    /* Spacing between monthly and daily heatmaps inside Goals Progress */
+    #monthly-heatmap-container {
+        padding: 0px;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .stat-card-label {
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-text-muted);
+    }
+
+    .stat-card-icon {
+        font-size: 20px;
+        opacity: 0.9;
+        flex-shrink: 0;
+    }
+
+    .stat-card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .dashboard-hero {
+        display: flex;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+        align-items: stretch;
+        animation: slideUp 0.5s ease;
+        animation-fill-mode: backwards;
+    }
+
+    /* Circular Progress */
+    .circular-progress {
+        position: relative;
+        width: 60px;
+        height: 60px;
+    }
+
+    .circular-progress svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+    }
+
+    .circular-progress circle {
+        fill: none;
+        stroke-width: 8;
+        stroke-linecap: round;
+    }
+
+    .circular-progress-bg {
+        stroke: var(--color-border-light);
+    }
+
+    .circular-progress-bar {
+        stroke: var(--color-primary);
+        transition: stroke-dashoffset 0.5s ease;
+    }
+
+    .circular-progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--color-text);
+    }
+
+    .monthly-heatmap-cell .circular-progress .circular-progress-text {
+        font-size: 14px;
+    }
+
+    .monthly-heatmap {
+        margin-bottom: var(--spacing-md) !important;
+    }
+
+    /* ============ HEATMAPS ============ */
+
+    /* Daily consistency heatmap (GitHub-style) */
+    .dashboard-section {
+        --heatmap-cell-size: 8px;
+        --heatmap-gap: 2px;
+    }
+
+    .daily-heatmap {
+        grid-template-rows: repeat(7, var(--heatmap-cell-size));
+        gap: var(--heatmap-gap);
+    }
+
+    .daily-heatmap .heatmap-cell {
+        width: var(--heatmap-cell-size);
+        height: var(--heatmap-cell-size);
+        border-radius: 2px;
+    }
+
+    .heatmap-day-labels {
+        grid-template-rows: repeat(7, var(--heatmap-cell-size));
+        gap: var(--heatmap-gap);
+        font-size: 8px;
+        margin-right: 4px;
+        width: auto;
+        position: static;
+        background: none;
+        padding-right: 0;
+    }
+
+    .heatmap-month-labels {
+        height: 12px;
+        font-size: 8px;
+        margin-bottom: 2px;
+    }
+
+    .heatmap-main-content {
+        overflow-x: auto;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .heatmap-wrapper {
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+
 }
 
 /* ============ SCHEDULE EDITOR ============ */

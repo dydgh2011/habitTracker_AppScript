@@ -238,6 +238,10 @@
     --glass-bg: rgba(255, 255, 255, 0.95);
     --glass-border: rgba(0, 0, 0, 0.06);
     --glass-blur: 0px;
+
+    /* Heatmap Dimensions */
+    --heatmap-cell-size: 14px;
+    --heatmap-gap: 3px;
 }
 
 /* ============ RESET ============ */
@@ -1077,5 +1081,16 @@ body.test-mode-active #nav-bar {
 
     .page-title {
         font-size: var(--font-size-lg);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: var(--spacing-sm);
+        color: var(--color-text-muted);
+        gap: var(--spacing-sm);
+        font-size: var(--font-size-md);
     }
 }

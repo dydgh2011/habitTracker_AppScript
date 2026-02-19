@@ -24,40 +24,50 @@ export function renderDailyHeatmap(container, allEntries) {
     const wrapper = document.createElement('div');
     wrapper.className = 'heatmap-wrapper';
 
-    // Day labels (Mon, Wed, Fri)
+    // Get current dimensions from CSS (handles mobile scaling)
+    const computedStyle = window.getComputedStyle(container);
+    const cellSize = parseInt(computedStyle.getPropertyValue('--heatmap-cell-size')) || 14;
+    const gap = parseInt(computedStyle.getPropertyValue('--heatmap-gap')) || 3;
+
+    // Day labels (Mon, Wed, Fri) - Fixed Sidebar
     const dayLabels = document.createElement('div');
     dayLabels.className = 'heatmap-day-labels';
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     for (let i = 0; i < 7; i++) {
         const label = document.createElement('div');
         label.textContent = i % 2 === 1 ? dayNames[i] : '';
-        label.style.height = '14px';
-        label.style.lineHeight = '14px';
+        label.style.height = `${cellSize}px`;
+        label.style.lineHeight = `${cellSize}px`;
         dayLabels.appendChild(label);
     }
     wrapper.appendChild(dayLabels);
 
-    // Build the grid
+    // Build the Grid & Month Labels (Scrollable Content)
+    const mainContent = document.createElement('div');
+    mainContent.className = 'heatmap-main-content';
+
+    const monthLabelsContainer = document.createElement('div');
+    monthLabelsContainer.className = 'heatmap-month-labels';
+    monthLabelsContainer.style.position = 'relative';
+
+    let lastCol = -1;
+    for (let m = 0; m < 12; m++) {
+        const pos = getHeatmapPosition(YEAR, m + 1, 1);
+        if (pos.col > lastCol) {
+            const label = document.createElement('span');
+            label.textContent = MONTHS[m];
+            label.style.position = 'absolute';
+            label.style.left = `${pos.col * (cellSize + gap)}px`;
+            label.style.whiteSpace = 'nowrap';
+            monthLabelsContainer.appendChild(label);
+            lastCol = pos.col;
+        }
+    }
+
     const grid = document.createElement('div');
     grid.className = 'daily-heatmap';
 
-    // Month labels container (inside wrapper so it scrolls)
-    const monthLabels = document.createElement('div');
-    monthLabels.className = 'heatmap-month-labels';
-
-    for (let m = 0; m < 12; m++) {
-        const label = document.createElement('span');
-        label.textContent = MONTHS[m];
-        // 17px = 14px cell + 3px gap
-        const weeksInMonth = getDaysInMonth(YEAR, m + 1) / 7;
-        label.style.width = `${weeksInMonth * 17}px`;
-        label.style.flexShrink = '0';
-        monthLabels.appendChild(label);
-    }
-
-    const mainContent = document.createElement('div');
-    mainContent.className = 'heatmap-main-content';
-    mainContent.appendChild(monthLabels);
+    mainContent.appendChild(monthLabelsContainer);
     mainContent.appendChild(grid);
 
     // Initialize 53 weeks x 7 days grid
@@ -89,6 +99,13 @@ export function renderDailyHeatmap(container, allEntries) {
 
             const data = cells[week][day];
             if (data) {
+                // Check if this is today
+                const now = new Date();
+                const todayId = toDateId(now.getFullYear(), now.getMonth() + 1, now.getDate());
+                if (data.dateId === todayId) {
+                    cell.classList.add('is-today');
+                }
+
                 const color = interpolateColor(
                     data.completion,
                     COLORS.greenHeatmap.min,

@@ -21,6 +21,6 @@ Since this project is a static web application, you can serve it using any simpl
 
 ## Features
 - **Modern UI**: Smooth transitions, glassmorphism, and a warm "organic modern" theme.
-- **Data Visualization**: Heatmaps, progress circles, and interactive charts.
+- **Data Visualization**: Heatmaps, progress circles, and interactiveｗ charts.
 - **Test Mode**: Built-in mock data for easy exploration (toggleable).
 - **Mobile Responsive**: Fully optimized for mobile devices with an accordion-style navigation overlay.
