@@ -19,13 +19,8 @@ export function renderNavBar(container, state) {
     const currentMonth = hash.replace('#/', '').split('/')[1] || '';
     const testMode = isTestMode();
 
-    // Clean up any orphaned #nav-links that was previously moved to document.body
-    // This happens on mobile where we detach it from the nav container for z-index reasons.
-    // Without this, the old element (with .open class) lingers visible after navigation.
-    const orphan = document.body.querySelector(':scope > #nav-links');
-    if (orphan) orphan.remove();
-
     container.innerHTML = `
+        <div class="nav-overlay" id="nav-overlay"></div>
         <span class="nav-brand">Habit Tracker ${YEAR}</span>
         <div class="nav-links" id="nav-links">
             <a href="#/dashboard" class="nav-link ${currentView === 'dashboard' ? 'active' : ''}">
@@ -66,11 +61,7 @@ export function renderNavBar(container, state) {
     `;
 
     const navLinks = document.getElementById('nav-links');
-
-    // For mobile, we move the nav-links to the body root to avoid any parent constraints (like backdrop-filter)
-    if (window.innerWidth <= 768 && navLinks.parentElement === container) {
-        document.body.appendChild(navLinks);
-    }
+    const navOverlay = document.getElementById('nav-overlay');
 
     // Test Mode toggle event
     const testToggle = document.getElementById('nav-test-toggle');
@@ -117,16 +108,31 @@ export function renderNavBar(container, state) {
     // Hamburger menu toggle
     const hamburger = document.getElementById('nav-hamburger');
     if (hamburger && navLinks) {
+        const toggleMenu = (isOpen) => {
+            if (isOpen) {
+                navLinks.classList.add('open');
+                if (navOverlay) navOverlay.classList.add('open');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling underneath
+                hamburger.textContent = '✕';
+            } else {
+                navLinks.classList.remove('open');
+                if (navOverlay) navOverlay.classList.remove('open');
+                document.body.style.overflow = ''; // Restore scrolling
+                hamburger.textContent = '☰';
+            }
+        };
+
         hamburger.addEventListener('click', () => {
-            navLinks.classList.toggle('open');
-            hamburger.textContent = navLinks.classList.contains('open') ? '✕' : '☰';
+            const willOpen = !navLinks.classList.contains('open');
+            toggleMenu(willOpen);
         });
 
+        if (navOverlay) {
+            navOverlay.addEventListener('click', () => toggleMenu(false));
+        }
+
         navLinks.querySelectorAll('a:not(.nav-dropdown > .nav-link)').forEach(link => {
-            link.addEventListener('click', () => {
-                navLinks.classList.remove('open');
-                hamburger.textContent = '☰';
-            });
+            link.addEventListener('click', () => toggleMenu(false));
         });
     }
 
