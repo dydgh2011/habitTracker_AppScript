@@ -315,8 +315,8 @@ export async function buildDashboardCharts(container, schema, allEntries) {
     const totalVisibleDays = allDates.length;
     let aggregation = 'daily';
 
-    if (totalVisibleDays > 180) aggregation = 'monthly';
-    else if (totalVisibleDays > 45) aggregation = 'weekly';
+    if (totalVisibleDays > 149) aggregation = 'monthly';
+    else if (totalVisibleDays >= 60) aggregation = 'weekly';
 
     // 2. Build Charts
     const chartsWrapper = document.createElement('div');

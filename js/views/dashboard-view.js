@@ -6,7 +6,7 @@ import { YEAR } from '../config.js';
 import { loadSchema } from '../schema/schema-manager.js';
 import { getAllEntries, getAllMonthlyGoals } from '../db/data-access.js';
 import { renderDailyHeatmap, renderMonthlyHeatmap } from '../components/heatmap.js';
-import { buildDashboardCharts } from '../components/chart-builder.js';
+import { buildDashboardCharts } from '../components/chart-builder.js?v=2';
 import { renderChartConfigModal } from '../components/chart-config-modal.js';
 import { toDateId } from '../utils/date-utils.js';
 

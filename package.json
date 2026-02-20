@@ -1,0 +1,24 @@
+{
+  "name": "habittracker_appscript",
+  "version": "1.0.0",
+  "description": "A modern, high-performance Habit Tracker application with advanced data visualization and a premium UI/UX.",
+  "main": "test-date.js",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dydgh2011/habitTracker_AppScript.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dydgh2011/habitTracker_AppScript/issues"
+  },
+  "homepage": "https://github.com/dydgh2011/habitTracker_AppScript#readme",
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}
