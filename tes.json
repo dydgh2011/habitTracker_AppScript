@@ -6,16 +6,17 @@
         },
         "Running Time": {
             "type": "number",
-            "format": "mm:ss"
+            "format": "mm:ss",
+            "unit": "min"
         },
         "Running Distance": {
             "type": "number",
             "unit": "km"
         },
-        "Running Phase": {
+        "Running Pace": {
             "type": "velocity",
-            "unit": "km/h",
-            "calculation": "Running Distance / Running Time"
+            "unit": "min/km",
+            "calculation": "Running Time / Running Distance"
         },
         "Calories Consumed": {
             "type": "number",
@@ -29,12 +30,48 @@
             "type": "number",
             "unit": "g"
         },
-        "Bench"
+        "Bench Press": {
+            "type": "number",
+            "unit": "kg",
+            "chartGroup": "gym",
+            "chartType": "line"
+        },
+        "Squat": {
+            "type": "number",
+            "unit": "kg",
+            "chartGroup": "gym",
+            "chartType": "line"
+        },
+        "Deadlift": {
+            "type": "number",
+            "unit": "kg",
+            "chartGroup": "gym",
+            "chartType": "line"
+        }
     },
-    "Daly Goals": {
-        "workout at least 10 menutes" :{
+    "Daily Goals": {
+        "Workout at least 10 minutes": {
             "type": "checkbox"
         },
-        ""
+        "Drink 2L of water": {
+            "type": "checkbox"
+        },
+        "Read for 30 minutes": {
+            "type": "checkbox"
+        },
+        "No junk food": {
+            "type": "checkbox"
+        }
+    },
+    "Monthly Goals": {
+        "Complete online course": {
+            "type": "checkbox"
+        },
+        "Read 2 books": {
+            "type": "checkbox"
+        },
+        "Hit gym 20 times": {
+            "type": "checkbox"
+        }
     }
 }

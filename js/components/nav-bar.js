@@ -28,12 +28,12 @@ export function renderNavBar(container, state) {
             </a>
             <div class="nav-dropdown" id="nav-monthly-dropdown">
                 <a href="#" class="nav-link ${currentView === 'month' ? 'active' : ''}">
-                    ${NAV_ICONS.monthly}Monthly ▾
+                    ${NAV_ICONS.monthly}Monthly
                 </a>
                 <div class="nav-dropdown-menu">
                     ${MONTHS.map(m =>
-        `<a href="#/month/${m.toLowerCase()}" class="nav-dropdown-item ${currentMonth === m.toLowerCase() ? 'active' : ''}">${m}</a>`
-    ).join('')}
+                    `<a href="#/month/${m.toLowerCase()}" class="nav-dropdown-item ${currentMonth === m.toLowerCase() ? 'active' : ''}">${m}</a>`
+                ).join('')}
                 </div>
             </div>
             <a href="#/entry" class="nav-link ${currentView === 'entry' ? 'active' : ''}">
