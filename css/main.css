@@ -976,45 +976,60 @@ body.test-mode-active #nav-bar {
 
     .nav-links {
         display: none;
-        position: fixed !important;
-        top: 0 !important;
-        /* Full screen coverage */
+        /* Controlled by .open class in JS */
+        position: absolute !important;
+        top: var(--nav-height) !important;
         left: 0 !important;
         right: 0 !important;
-        bottom: 0 !important;
-        height: 100vh !important;
-        background-color: #ffffff !important;
-        background: #ffffff !important;
+        background: var(--color-bg-card-solid) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         flex-direction: column;
-        padding: calc(var(--nav-height) + var(--spacing-xl)) var(--spacing-lg) var(--spacing-xl) !important;
-        gap: var(--spacing-sm);
+        padding: var(--spacing-md) !important;
+        gap: var(--spacing-xs);
         z-index: 9999 !important;
-        /* Just below toast/etc if any, but very high */
-        overflow-y: auto !important;
-        border-top: none;
-        transition: opacity 0.3s ease;
+        /* Ensure it's above everything */
+        border-bottom: 2px solid var(--color-primary-subtle);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        transform: translateY(-20px);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
         opacity: 0;
         pointer-events: none;
-        transform: none !important;
+        visibility: hidden;
     }
 
     .nav-links.open {
         display: flex !important;
         opacity: 1 !important;
+        transform: translateY(0);
         pointer-events: all !important;
         visibility: visible !important;
     }
 
     .nav-link {
-        padding: var(--spacing-md);
-        font-size: var(--font-size-lg);
+        padding: 14px var(--spacing-md) !important;
+        font-size: 16px !important;
         width: 100%;
         text-align: left;
         border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--color-text);
+        background: transparent;
+        border: none;
     }
 
-    .nav-link.active::after {
-        display: none;
+    .nav-link:hover,
+    .nav-link:active {
+        background: var(--color-bg-hover) !important;
+        color: var(--color-primary);
+    }
+
+    .nav-link.active {
+        background: var(--color-primary-subtle) !important;
+        color: var(--color-primary);
+        font-weight: 700;
     }
 
     .nav-dropdown-menu {
@@ -1052,7 +1067,9 @@ body.test-mode-active #nav-bar {
 
     .nav-sync-status {
         margin-left: 0;
-        margin-right: var(--spacing-sm);
+        margin-right: 0;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
     }
 
     #app {

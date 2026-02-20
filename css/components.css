@@ -1751,7 +1751,7 @@
     }
 
     .dashboard-section .section-title {
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: 0px;
         padding-bottom: var(--spacing-sm);
         border-bottom: 1px solid var(--color-border-light);
     }
@@ -1767,7 +1767,7 @@
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--color-text-muted);
+        color: var(--card-accent, var(--color-text-muted));
     }
 
     .stat-card-icon {
