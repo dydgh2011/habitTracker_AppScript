@@ -143,7 +143,7 @@ export function renderNavBar(container, state) {
         const isOffline = localStorage.getItem('offlineMode') === 'true';
         const msg = isOffline ? 'Switch back to Online Mode?' : 'Configure connection settings?';
         if (confirm(msg)) {
-            if (isOffline) localStorage.removeItem('offlineMode');
+            if (isOffline) localStorage.setItem('offlineMode', 'false');
             window.location.hash = '#/setup';
         }
     });
@@ -151,6 +151,8 @@ export function renderNavBar(container, state) {
 
 function getSyncClass(state) {
     if (!state.syncEngine) return '';
+    const isOffline = localStorage.getItem('offlineMode') === 'true';
+    if (isOffline) return 'offline';
     switch (state.syncEngine.status) {
         case 'syncing': return 'syncing';
         case 'error': return 'error';
@@ -162,7 +164,7 @@ function getSyncClass(state) {
 function getSyncLabel(state) {
     if (!state.syncEngine) return '';
     const isOffline = localStorage.getItem('offlineMode') === 'true';
-    if (isOffline && !state.syncEngine.isConfigured()) return 'Offline Mode';
+    if (isOffline) return 'Offline';
     switch (state.syncEngine.status) {
         case 'syncing': return 'Syncing...';
         case 'error': return 'Sync Error';

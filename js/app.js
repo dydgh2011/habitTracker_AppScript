@@ -28,6 +28,12 @@ const state = {
 async function init() {
     // Initialize IndexedDB
     await initLocalStore();
+    // check if it is on offline mode
+    const offlineMode = localStorage.getItem('offlineMode') === 'true';
+    // if there's no item such as "offlineMode", add it as false
+    if (!offlineMode) {
+        localStorage.setItem('offlineMode', 'false');
+    }
 
     // Check for test mode
     const testModeActive = await initTestMode();
@@ -35,33 +41,38 @@ async function init() {
         document.body.classList.add('test-mode-active');
     }
 
+    const isUsingMockData = localStorage.getItem('isUsingMockData') === 'true';
+
+    // check if it is on setup menu by url
+    const setupMode = window.location.hash === '#/setup';
+
     // Initialize sync engine first so we can use it during seeding
     state.syncEngine = new SyncEngine();
 
-    if (!testModeActive) {
+    if (!testModeActive && !offlineMode && !setupMode && !isUsingMockData) {
         // Skip seeding (and Firebase pull) if the user just wiped data intentionally
         const skipSeed = localStorage.getItem('skipSeed') === 'true';
         if (skipSeed) {
             // Keep the flag — don't remove it, so subsequent reloads also skip seeding
         } else {
             // Seed mock data into IndexedDB if it is empty
-            const wasSeeded = await seedMockData();
+            // const wasSeeded = await seedMockData();
 
-            // If we just seeded AND Firebase is configured, push the seed data up
-            // so the remote DB is populated from the start.
-            if (wasSeeded && state.syncEngine.isConfigured()) {
-                showToast('⬆️ Uploading initial data to Firebase…', 'info');
-                const [entries, goals] = await Promise.all([
-                    getAllEntries(YEAR),
-                    getAllMonthlyGoals(YEAR),
-                ]);
-                for (const entry of entries) {
-                    state.syncEngine.schedulePush('entries', entry._id, entry);
-                }
-                for (const goal of goals) {
-                    state.syncEngine.schedulePush('monthlyGoals', goal._id, goal);
-                }
-            }
+            // // If we just seeded AND Firebase is configured, push the seed data up
+            // // so the remote DB is populated from the start.
+            // if (wasSeeded && state.syncEngine.isConfigured()) {
+            //     showToast('⬆️ Uploading initial data to Firebase…', 'info');
+            //     const [entries, goals] = await Promise.all([
+            //         getAllEntries(YEAR),
+            //         getAllMonthlyGoals(YEAR),
+            //     ]);
+            //     for (const entry of entries) {
+            //         state.syncEngine.schedulePush('entries', entry._id, entry);
+            //     }
+            //     for (const goal of goals) {
+            //         state.syncEngine.schedulePush('monthlyGoals', goal._id, goal);
+            //     }
+            // }
 
             // Pull latest data from Firebase on startup so the local IndexedDB
             // is always up-to-date with what is actually in the remote database.
@@ -72,10 +83,7 @@ async function init() {
                 }).catch(err => console.warn('Initial pull failed:', err));
             }
         }
-    } else {
-        showToast('🧪 Test Mode Active — Using Mock Data');
     }
-
     // Render navigation
     renderNavBar(document.getElementById('nav-bar'), state);
 
