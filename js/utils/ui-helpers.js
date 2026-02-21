@@ -16,12 +16,12 @@ export function showToast(message, type = 'info', duration = 3000) {
     toast.textContent = message;
     container.appendChild(toast);
 
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
+    // setTimeout(() => {
+    //     toast.style.opacity = '0';
+    //     toast.style.transform = 'translateX(100%)';
+    //     toast.style.transition = 'all 0.3s ease';
+    //     setTimeout(() => toast.remove(), 300);
+    // }, duration);
 }
 
 /**

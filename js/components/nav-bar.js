@@ -138,15 +138,23 @@ export function renderNavBar(container, state) {
 
     // Sync/Connection Status click — use event delegation on the container so the
     // listener survives re-renders of the inner HTML.
-    container.addEventListener('click', (e) => {
-        if (!e.target.closest('.nav-sync-status')) return;
-        const isOffline = localStorage.getItem('offlineMode') === 'true';
-        const msg = isOffline ? 'Switch back to Online Mode?' : 'Configure connection settings?';
-        if (confirm(msg)) {
-            if (isOffline) localStorage.setItem('offlineMode', 'false');
-            window.location.hash = '#/setup';
-        }
-    });
+    if (!container.dataset.listenerInitialized) {
+        container.addEventListener('click', (e) => {
+            console.log
+            if (!e.target.closest('.nav-sync-status')) return;
+
+            // If we are already on the setup page, don't show the confirm dialog
+            if (window.location.hash === '#/setup') return;
+
+            const isOffline = localStorage.getItem('offlineMode') === 'true';
+            const msg = isOffline ? 'Switch back to Online Mode?' : 'Configure connection settings?';
+            if (confirm(msg)) {
+                if (isOffline) localStorage.setItem('offlineMode', 'false');
+                window.location.hash = '#/setup';
+            }
+        });
+        container.dataset.listenerInitialized = 'true';
+    }
 }
 
 function getSyncClass(state) {
@@ -162,6 +170,8 @@ function getSyncClass(state) {
 }
 
 function getSyncLabel(state) {
+    const setupMode = window.location.hash === '#/setup';
+    if (setupMode) return 'Setup';
     if (!state.syncEngine) return '';
     const isOffline = localStorage.getItem('offlineMode') === 'true';
     if (isOffline) return 'Offline';
