@@ -976,9 +976,6 @@ body.test-mode-active #nav-bar {
     .nav-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
         opacity: 0;
         visibility: hidden;
         z-index: 9998;

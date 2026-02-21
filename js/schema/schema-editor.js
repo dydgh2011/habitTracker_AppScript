@@ -68,11 +68,7 @@ export function renderSchemaEditor(container, schema, onSave) {
 
             // Column headers for fields
             const colHeaders = document.createElement('div');
-            colHeaders.className = 'schema-field-row';
-            colHeaders.style.background = '#f5f2ee';
-            colHeaders.style.fontWeight = '600';
-            colHeaders.style.fontSize = '12px';
-            colHeaders.style.color = '#9e9690';
+            colHeaders.className = 'schema-field-row schema-field-header';
             colHeaders.innerHTML = `
                 <span>Field Name</span>
                 <span>Type</span>
@@ -91,6 +87,9 @@ export function renderSchemaEditor(container, schema, onSave) {
                 fieldRow.className = 'schema-field-row';
 
                 // Field name input
+                const fnGroup = document.createElement('div');
+                fnGroup.className = 'field-input-group';
+                fnGroup.innerHTML = '<label class="mobile-label">Field Name</label>';
                 const fnInput = document.createElement('input');
                 fnInput.type = 'text';
                 fnInput.value = fieldName;
@@ -109,9 +108,13 @@ export function renderSchemaEditor(container, schema, onSave) {
                         render();
                     }
                 });
-                fieldRow.appendChild(fnInput);
+                fnGroup.appendChild(fnInput);
+                fieldRow.appendChild(fnGroup);
 
                 // Type select
+                const typeGroup = document.createElement('div');
+                typeGroup.className = 'field-input-group';
+                typeGroup.innerHTML = '<label class="mobile-label">Type</label>';
                 const typeSelect = document.createElement('select');
                 for (const t of getAvailableTypes()) {
                     const opt = document.createElement('option');
@@ -122,10 +125,15 @@ export function renderSchemaEditor(container, schema, onSave) {
                 }
                 typeSelect.addEventListener('change', () => {
                     fieldDef.type = typeSelect.value;
+                    render(); // Re-render to update the Calc/Group placeholder/logic
                 });
-                fieldRow.appendChild(typeSelect);
+                typeGroup.appendChild(typeSelect);
+                fieldRow.appendChild(typeGroup);
 
                 // Unit input
+                const unitGroup = document.createElement('div');
+                unitGroup.className = 'field-input-group';
+                unitGroup.innerHTML = '<label class="mobile-label">Unit</label>';
                 const unitInput = document.createElement('input');
                 unitInput.type = 'text';
                 unitInput.value = fieldDef.unit || '';
@@ -133,9 +141,13 @@ export function renderSchemaEditor(container, schema, onSave) {
                 unitInput.addEventListener('change', () => {
                     fieldDef.unit = unitInput.value.trim() || undefined;
                 });
-                fieldRow.appendChild(unitInput);
+                unitGroup.appendChild(unitInput);
+                fieldRow.appendChild(unitGroup);
 
                 // Format input
+                const formatGroup = document.createElement('div');
+                formatGroup.className = 'field-input-group';
+                formatGroup.innerHTML = '<label class="mobile-label">Format</label>';
                 const formatInput = document.createElement('input');
                 formatInput.type = 'text';
                 formatInput.value = fieldDef.format || '';
@@ -143,9 +155,13 @@ export function renderSchemaEditor(container, schema, onSave) {
                 formatInput.addEventListener('change', () => {
                     fieldDef.format = formatInput.value.trim() || undefined;
                 });
-                fieldRow.appendChild(formatInput);
+                formatGroup.appendChild(formatInput);
+                fieldRow.appendChild(formatGroup);
 
                 // Calculation / Chart Group input
+                const calcGroup = document.createElement('div');
+                calcGroup.className = 'field-input-group';
+                calcGroup.innerHTML = `<label class="mobile-label">${fieldDef.type === 'velocity' ? 'Calculation' : 'Chart Group'}</label>`;
                 const calcInput = document.createElement('input');
                 calcInput.type = 'text';
                 if (fieldDef.type === 'velocity') {
@@ -162,7 +178,8 @@ export function renderSchemaEditor(container, schema, onSave) {
                         fieldDef.chartGroup = calcInput.value.trim() || undefined;
                     }
                 });
-                fieldRow.appendChild(calcInput);
+                calcGroup.appendChild(calcInput);
+                fieldRow.appendChild(calcGroup);
 
                 // Remove button
                 const removeFieldBtn = document.createElement('button');

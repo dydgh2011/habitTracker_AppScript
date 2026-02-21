@@ -10,7 +10,7 @@ export async function renderSchemaView(container, state) {
     container.innerHTML = `
         <div class="schema-editor">
             <h1 class="page-title">Schema <span class="title-accent">Editor</span></h1>
-            <p style="color: var(--color-text-secondary); margin-bottom: var(--spacing-xl); font-size: var(--font-size-md);">
+            <p class="page-description" style="color: var(--color-text-secondary); margin-bottom: var(--spacing-xl); font-size: var(--font-size-md);">
                 Define the sections, fields, and goals that you want to track. Changes will be applied immediately.
             </p>
 
