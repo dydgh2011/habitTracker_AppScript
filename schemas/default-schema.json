@@ -409,10 +409,6 @@
                 ]
             }
         },
-        "Personal Project Work Time": {
-            "type": "number",
-            "unit": "min"
-        },
         "Running Distance": {
             "type": "number",
             "unit": "km"
@@ -449,6 +445,10 @@
                     6
                 ]
             }
+        },
+        "Personal Project Work Time": {
+            "type": "number",
+            "unit": "min"
         }
     },
     "Daily Goals": {
