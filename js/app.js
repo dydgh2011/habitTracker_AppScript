@@ -50,35 +50,20 @@ async function init() {
     state.syncEngine = new SyncEngine();
 
     if (!testModeActive && !offlineMode && !setupMode && !isUsingMockData) {
-        // Skip seeding (and Firebase pull) if the user just wiped data intentionally
-        const skipSeed = localStorage.getItem('skipSeed') === 'true';
-        if (skipSeed) {
-            // Keep the flag — don't remove it, so subsequent reloads also skip seeding
+        // Skip seeding and initial pull if the user just wiped data intentionally (Fresh Start)
+        // or if they are explicitly using mock data.
+        const freshStart = localStorage.getItem('freshStart') === 'true';
+
+        if (freshStart) {
+            console.log('✨ Fresh start: Skipping initial pull and seeding.');
+            localStorage.removeItem('freshStart'); // Clear it for next time
         } else {
-            // Seed mock data into IndexedDB if it is empty
+            // Seed mock data into IndexedDB if it is empty (and NOT a fresh start)
             // const wasSeeded = await seedMockData();
 
-            // // If we just seeded AND Firebase is configured, push the seed data up
-            // // so the remote DB is populated from the start.
-            // if (wasSeeded && state.syncEngine.isConfigured()) {
-            //     showToast('⬆️ Uploading initial data to Firebase…', 'info');
-            //     const [entries, goals] = await Promise.all([
-            //         getAllEntries(YEAR),
-            //         getAllMonthlyGoals(YEAR),
-            //     ]);
-            //     for (const entry of entries) {
-            //         state.syncEngine.schedulePush('entries', entry._id, entry);
-            //     }
-            //     for (const goal of goals) {
-            //         state.syncEngine.schedulePush('monthlyGoals', goal._id, goal);
-            //     }
-            // }
-
-            // Pull latest data from Firebase on startup so the local IndexedDB
-            // is always up-to-date with what is actually in the remote database.
+            // Pull latest data from Firebase on startup
             if (state.syncEngine.isConfigured()) {
                 state.syncEngine.pullAll().then(() => {
-                    // Re-render the current view after pull so fresh data is shown
                     route();
                 }).catch(err => console.warn('Initial pull failed:', err));
             }

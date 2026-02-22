@@ -6,8 +6,132 @@
  * All other sections are custom data sections.
  */
 
-import { getMeta, putMeta } from '../db/local-store.js';
+import { getMeta, putMeta, getAllEntries, putEntry, getAllMonthlyGoals, putMonthlyGoal } from '../db/local-store.js';
 import { YEAR } from '../config.js';
+
+
+/**
+ * Compare two schemas to find potential data conflicts (removals or type changes)
+ * @param {Object} oldSchema 
+ * @param {Object} newSchema 
+ * @returns {Object} 
+ */
+export function findSchemaConflicts(oldSchema, newSchema) {
+    const conflicts = {
+        removedSections: [],
+        removedFields: [], // { section, field }
+        changedTypes: []   // { section, field, oldType, newType }
+    };
+
+    for (const [sectionName, oldSection] of Object.entries(oldSchema)) {
+        const newSection = newSchema[sectionName];
+
+        if (!newSection) {
+            conflicts.removedSections.push(sectionName);
+            continue;
+        }
+
+        for (const [fieldName, oldField] of Object.entries(oldSection)) {
+            const newField = newSection[fieldName];
+
+            if (!newField) {
+                conflicts.removedFields.push({ section: sectionName, field: fieldName });
+                continue;
+            }
+
+            if (oldField.type !== newField.type) {
+                conflicts.changedTypes.push({
+                    section: sectionName,
+                    field: fieldName,
+                    oldType: oldField.type,
+                    newType: newField.type
+                });
+            }
+        }
+    }
+
+    return conflicts;
+}
+
+/**
+ * Clean data for a new schema based on detected conflicts
+ * @param {Object} conflicts - The result of findSchemaConflicts
+ */
+export async function cleanDataForNewSchema(conflicts) {
+    const hasConflicts = conflicts.removedSections.length > 0 ||
+        conflicts.removedFields.length > 0 ||
+        conflicts.changedTypes.length > 0;
+
+    if (!hasConflicts) return;
+
+    // 1. Clean entries (Daily data)
+    const entries = await getAllEntries(YEAR);
+    for (const entry of entries) {
+        let modified = false;
+
+        // Handle sections
+        for (const sectionName of conflicts.removedSections) {
+            if (sectionName === 'Daily Goals') {
+                if (entry.dailyGoals) {
+                    delete entry.dailyGoals;
+                    modified = true;
+                }
+            } else if (entry.fields && entry.fields[sectionName]) {
+                delete entry.fields[sectionName];
+                modified = true;
+            }
+        }
+
+        // Handle fields
+        const allFieldConflicts = [...conflicts.removedFields, ...conflicts.changedTypes];
+        for (const conf of allFieldConflicts) {
+            if (conf.section === 'Daily Goals') {
+                if (entry.dailyGoals && entry.dailyGoals[conf.field] !== undefined) {
+                    delete entry.dailyGoals[conf.field];
+                    modified = true;
+                }
+            } else if (entry.fields && entry.fields[conf.section] && entry.fields[conf.section][conf.field] !== undefined) {
+                delete entry.fields[conf.section][conf.field];
+                modified = true;
+            }
+        }
+
+        if (modified) {
+            await putEntry(entry);
+        }
+    }
+
+    // 2. Clean Monthly Goals
+    const monthlyGoals = await getAllMonthlyGoals(YEAR);
+    for (const mg of monthlyGoals) {
+        let modified = false;
+
+        // Check if Monthly Goals section was removed entirely
+        if (conflicts.removedSections.includes('Monthly Goals')) {
+            // If the whole section is gone, we might want to clear most fields
+            // but keep the metadata (_id, year, month, etc)
+            for (const key of Object.keys(mg)) {
+                if (!['_id', 'year', 'month', 'updatedAt', 'completion'].includes(key)) {
+                    delete mg[key];
+                    modified = true;
+                }
+            }
+        } else {
+            // Check for specific fields in Monthly Goals
+            const mgConflicts = allFieldConflicts.filter(c => c.section === 'Monthly Goals');
+            for (const conf of mgConflicts) {
+                if (mg[conf.field] !== undefined) {
+                    delete mg[conf.field];
+                    modified = true;
+                }
+            }
+        }
+
+        if (modified) {
+            await putMonthlyGoal(mg);
+        }
+    }
+}
 
 // Default schema loaded from file
 let defaultSchema = null;
@@ -19,7 +143,7 @@ let cachedSchema = null;
 async function loadDefaultSchema() {
     if (defaultSchema) return defaultSchema;
     try {
-        const response = await fetch('./schemas/default-schema.json');
+        const response = await fetch(`./schemas/default-schema.json?v=${Date.now()}`);
         defaultSchema = await response.json();
     } catch (err) {
         console.error('Failed to load default schema:', err);

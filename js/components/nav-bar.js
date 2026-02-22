@@ -45,12 +45,12 @@ export function renderNavBar(container, state) {
         </div>
         <div class="nav-controls">
             <!--
-                <button class="nav-test-toggle ${testMode ? 'active' : ''}" id="nav-test-toggle" title="${testMode ? 'Disable Test Mode' : 'Enable Test Mode'}">
-                    🧪
-                </button>
-                <button class="nav-delete-all" id="nav-delete-all" title="Delete all local data">
-                    🗑️
-                </button>
+            <button class="nav-test-toggle ${testMode ? 'active' : ''}" id="nav-test-toggle" title="${testMode ? 'Disable Test Mode' : 'Enable Test Mode'}">
+                🧪
+            </button>
+            <button class="nav-delete-all" id="nav-delete-all" title="Delete all local data">
+                🗑️
+            </button>
             -->
             <div class="nav-sync-status" style="cursor:pointer" title="Click to configure connection">
                 <span class="sync-indicator ${getSyncClass(state)}"></span>
@@ -79,8 +79,8 @@ export function renderNavBar(container, state) {
             if (!confirm('⚠️ Delete ALL local data?\n\nThis will wipe all entries, monthly goals, and settings from this device. This cannot be undone.')) return;
             try {
                 await clearAllData();
-                // Tell app.js not to re-seed after this intentional wipe
-                localStorage.setItem('skipSeed', 'true');
+                // Add a flag to skip initial sync/seed on reload
+                localStorage.setItem('freshStart', 'true');
                 location.reload();
             } catch (err) {
                 console.error('Failed to clear data:', err);

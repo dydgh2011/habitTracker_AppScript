@@ -2,7 +2,7 @@
  * Schema View — Edit, import/export the application schema
  */
 
-import { loadSchema, saveSchema, validateSchema } from '../schema/schema-manager.js';
+import { loadSchema, saveSchema, validateSchema, findSchemaConflicts, cleanDataForNewSchema } from '../schema/schema-manager.js';
 import { showToast } from '../utils/ui-helpers.js';
 import { renderSchemaEditor, getEditedSchema } from '../schema/schema-editor.js';
 
@@ -43,12 +43,43 @@ export async function renderSchemaView(container, state) {
     // Save
     document.getElementById('schema-save').addEventListener('click', async () => {
         try {
+            const currentSchema = await loadSchema();
             const editedSchema = getEditedSchema();
-            const result = validateSchema(editedSchema);
-            if (!result.valid) {
-                showToast('Validation errors:\n' + result.errors.join('\n'), 'error');
+
+            // 1. Basic Validation
+            const validation = validateSchema(editedSchema);
+            if (!validation.valid) {
+                showToast('Validation errors:\n' + validation.errors.join('\n'), 'error');
                 return;
             }
+
+            // 2. Conflict Detection
+            const conflicts = findSchemaConflicts(currentSchema, editedSchema);
+            const hasConflicts = conflicts.removedSections.length > 0 ||
+                conflicts.removedFields.length > 0 ||
+                conflicts.changedTypes.length > 0;
+
+            if (hasConflicts) {
+                let msg = '⚠️ Schema changes will affect existing data:\n\n';
+                if (conflicts.removedSections.length > 0) {
+                    msg += `• Removed sections: ${conflicts.removedSections.join(', ')}\n`;
+                }
+                if (conflicts.removedFields.length > 0) {
+                    msg += `• Removed fields: ${conflicts.removedFields.map(f => `${f.section}.${f.field}`).join(', ')}\n`;
+                }
+                if (conflicts.changedTypes.length > 0) {
+                    msg += `• Type changes: ${conflicts.changedTypes.map(c => `${c.section}.${c.field} (${c.oldType} → ${c.newType})`).join(', ')}\n`;
+                }
+                msg += '\nExisting data for these items will be PERMANENTLY DELETED to maintain consistency. Proceed?';
+
+                if (!confirm(msg)) return;
+
+                // 3. Data Cleanup
+                showToast('Cleaning up legacy data...', 'info');
+                await cleanDataForNewSchema(conflicts);
+            }
+
+            // 4. Save Schema
             await saveSchema(editedSchema);
             if (state.syncEngine && state.syncEngine.isConfigured()) {
                 await state.syncEngine.pushSchema(editedSchema);

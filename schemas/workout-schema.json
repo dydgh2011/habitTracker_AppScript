@@ -408,54 +408,28 @@
                     6
                 ]
             }
-        },
-        "Personal Project Work Time": {
-            "type": "number",
-            "unit": "min"
-        },
-        "Running Distance": {
-            "type": "number",
-            "unit": "km"
-        },
-        "Running Time": {
-            "type": "number",
-            "unit": "min"
-        },
-        "Plank (Total Time)": {
-            "type": "number",
-            "unit": "sec",
-            "schedule": {
-                "type": "weekdays",
-                "days": [
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6
-                ]
-            }
-        },
-        "Sit-ups": {
-            "type": "number",
-            "schedule": {
-                "type": "weekdays",
-                "days": [
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6
-                ]
-            }
         }
     },
     "Daily Goals": {
-        "Wake Up at 5:30 AM": {
+        "Take 2 Scoops of Protein on Morning": {
             "type": "checkbox"
         },
-        "Take 2 Scoops of Protein on Morning": {
+        "Study at least 30 minutes": {
+            "type": "checkbox"
+        },
+        "No junk food": {
+            "type": "checkbox"
+        },
+        "No Snacks": {
+            "type": "checkbox"
+        },
+        "Hit the Gym": {
+            "type": "checkbox"
+        },
+        "Take 2 Scoops of Protein and 3 Scoops of Creatine at night": {
+            "type": "checkbox"
+        },
+        "Wake Up at 5:30 AM": {
             "type": "checkbox"
         },
         "Be Productive on the way to Work": {
@@ -467,33 +441,18 @@
         "Don't Eat Dinner": {
             "type": "number"
         },
-        "Hit the Gym": {
-            "type": "checkbox"
-        },
-        "Study at least 30 minutes": {
-            "type": "checkbox"
-        },
-        "Take 2 Scoops of Protein and 3 Scoops of Creatine at night": {
-            "type": "checkbox"
-        },
-        "No junk food": {
-            "type": "checkbox"
-        },
-        "No Snacks": {
-            "type": "checkbox"
-        },
         "No Alcohol": {
             "type": "number"
         }
     },
     "Monthly Goals": {
-        "Finish 1 online course": {
+        "Complete online course": {
             "type": "checkbox"
         },
-        "Finish 1 Book": {
+        "Read 2 books": {
             "type": "checkbox"
         },
-        "Read 1 Journal article": {
+        "Hit gym 20 times": {
             "type": "checkbox"
         }
     }

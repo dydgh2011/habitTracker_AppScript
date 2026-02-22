@@ -18,6 +18,7 @@ import { describeSchedule } from '../utils/schedule-utils.js';
 export function renderSchemaEditor(container, schema, onSave) {
     // Deep clone to avoid mutating the original
     let workingSchema = JSON.parse(JSON.stringify(schema));
+    const collapsedSections = new Set(Object.keys(workingSchema));
 
     function render() {
         container.innerHTML = '';
@@ -26,45 +27,82 @@ export function renderSchemaEditor(container, schema, onSave) {
 
         for (const sectionName of sectionNames) {
             const section = workingSchema[sectionName];
+            const isCollapsed = collapsedSections.has(sectionName);
+
             const sectionEl = document.createElement('div');
-            sectionEl.className = 'schema-section';
+            sectionEl.className = `schema-section ${isCollapsed ? 'collapsed' : ''}`;
 
             // Section header
             const header = document.createElement('div');
             header.className = 'schema-section-header';
 
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.value = sectionName;
-            nameInput.addEventListener('change', () => {
-                const newName = nameInput.value.trim();
-                if (newName && newName !== sectionName && !workingSchema[newName]) {
-                    // Rename section
-                    const newSchema = {};
-                    for (const [key, val] of Object.entries(workingSchema)) {
-                        if (key === sectionName) {
-                            newSchema[newName] = val;
-                        } else {
-                            newSchema[key] = val;
-                        }
-                    }
-                    workingSchema = newSchema;
-                    render();
+            // Toggle icon
+            const toggleIcon = document.createElement('span');
+            toggleIcon.className = 'section-toggle';
+            toggleIcon.textContent = '▼';
+            toggleIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (collapsedSections.has(sectionName)) {
+                    collapsedSections.delete(sectionName);
+                } else {
+                    collapsedSections.add(sectionName);
                 }
-            });
-            header.appendChild(nameInput);
-
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'schema-remove-btn';
-            removeBtn.textContent = '\u00D7';
-            removeBtn.title = 'Remove section';
-            removeBtn.addEventListener('click', () => {
-                delete workingSchema[sectionName];
                 render();
             });
-            header.appendChild(removeBtn);
+            header.appendChild(toggleIcon);
+
+            const isSystemSection = sectionName === 'Daily Goals' || sectionName === 'Monthly Goals';
+
+            if (isSystemSection) {
+                const title = document.createElement('div');
+                title.className = 'schema-section-title';
+                title.textContent = sectionName;
+                header.appendChild(title);
+            } else {
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.value = sectionName;
+                nameInput.addEventListener('change', () => {
+                    const newName = nameInput.value.trim();
+                    if (newName && newName !== sectionName && !workingSchema[newName]) {
+                        // Rename section
+                        const newSchema = {};
+                        for (const [key, val] of Object.entries(workingSchema)) {
+                            if (key === sectionName) {
+                                newSchema[newName] = val;
+                            } else {
+                                newSchema[key] = val;
+                            }
+                        }
+                        // Handle rename in collapsed set
+                        if (collapsedSections.has(sectionName)) {
+                            collapsedSections.delete(sectionName);
+                            collapsedSections.add(newName);
+                        }
+                        workingSchema = newSchema;
+                        render();
+                    }
+                });
+                header.appendChild(nameInput);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'schema-remove-btn';
+                removeBtn.textContent = '\u00D7';
+                removeBtn.title = 'Remove section';
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    delete workingSchema[sectionName];
+                    collapsedSections.delete(sectionName);
+                    render();
+                });
+                header.appendChild(removeBtn);
+            }
 
             sectionEl.appendChild(header);
+
+            // Container for collapsible content
+            const body = document.createElement('div');
+            body.className = 'schema-section-body';
 
             // Column headers for fields
             const colHeaders = document.createElement('div');
@@ -74,10 +112,11 @@ export function renderSchemaEditor(container, schema, onSave) {
                 <span>Type</span>
                 <span>Unit</span>
                 <span>Format</span>
-                <span>Calc / Group</span>
+                <span>Calculation</span>
+                <span>Chart Group</span>
                 <span></span>
             `;
-            sectionEl.appendChild(colHeaders);
+            body.appendChild(colHeaders);
 
             // Field rows
             const fieldNames = Object.keys(section);
@@ -158,28 +197,34 @@ export function renderSchemaEditor(container, schema, onSave) {
                 formatGroup.appendChild(formatInput);
                 fieldRow.appendChild(formatGroup);
 
-                // Calculation / Chart Group input
+                // Calculation input (only for velocity)
                 const calcGroup = document.createElement('div');
                 calcGroup.className = 'field-input-group';
-                calcGroup.innerHTML = `<label class="mobile-label">${fieldDef.type === 'velocity' ? 'Calculation' : 'Chart Group'}</label>`;
+                calcGroup.innerHTML = '<label class="mobile-label">Calculation</label>';
                 const calcInput = document.createElement('input');
                 calcInput.type = 'text';
-                if (fieldDef.type === 'velocity') {
-                    calcInput.value = fieldDef.calculation || '';
-                    calcInput.placeholder = 'e.g., Distance / Time';
-                } else {
-                    calcInput.value = fieldDef.chartGroup || '';
-                    calcInput.placeholder = 'chart group';
-                }
+                calcInput.placeholder = 'e.g., Distance / Time';
+                calcInput.value = fieldDef.calculation || '';
+                calcInput.disabled = fieldDef.type !== 'velocity';
                 calcInput.addEventListener('change', () => {
-                    if (fieldDef.type === 'velocity') {
-                        fieldDef.calculation = calcInput.value.trim() || undefined;
-                    } else {
-                        fieldDef.chartGroup = calcInput.value.trim() || undefined;
-                    }
+                    fieldDef.calculation = calcInput.value.trim() || undefined;
                 });
                 calcGroup.appendChild(calcInput);
                 fieldRow.appendChild(calcGroup);
+
+                // Chart Group input (for any numeric type)
+                const groupGroup = document.createElement('div');
+                groupGroup.className = 'field-input-group';
+                groupGroup.innerHTML = '<label class="mobile-label">Chart Group</label>';
+                const groupInput = document.createElement('input');
+                groupInput.type = 'text';
+                groupInput.placeholder = 'group';
+                groupInput.value = fieldDef.chartGroup || '';
+                groupInput.addEventListener('change', () => {
+                    fieldDef.chartGroup = groupInput.value.trim() || undefined;
+                });
+                groupGroup.appendChild(groupInput);
+                fieldRow.appendChild(groupGroup);
 
                 // Remove button
                 const removeFieldBtn = document.createElement('button');
@@ -191,11 +236,11 @@ export function renderSchemaEditor(container, schema, onSave) {
                 });
                 fieldRow.appendChild(removeFieldBtn);
 
-                sectionEl.appendChild(fieldRow);
+                body.appendChild(fieldRow);
 
                 // Schedule configuration row
                 const scheduleRow = createScheduleRow(fieldDef);
-                sectionEl.appendChild(scheduleRow);
+                body.appendChild(scheduleRow);
             }
 
             // Add field button
@@ -207,15 +252,15 @@ export function renderSchemaEditor(container, schema, onSave) {
                 section[newName] = { type: 'number' };
                 render();
             });
-            sectionEl.appendChild(addFieldBtn);
+            body.appendChild(addFieldBtn);
 
+            sectionEl.appendChild(body);
             container.appendChild(sectionEl);
         }
 
         // Add section button
         const addSectionBtn = document.createElement('button');
         addSectionBtn.className = 'schema-add-btn';
-        addSectionBtn.style.marginTop = '16px';
         addSectionBtn.textContent = '+ Add Section';
         addSectionBtn.addEventListener('click', () => {
             const newName = `Section ${Object.keys(workingSchema).length + 1}`;
