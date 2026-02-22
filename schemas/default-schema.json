@@ -50,8 +50,7 @@
             "schedule": {
                 "type": "weekdays",
                 "days": [
-                    1,
-                    4
+                    1
                 ]
             }
         },
