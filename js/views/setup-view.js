@@ -18,7 +18,6 @@ export async function renderSetupView(container, state) {
                 <div id="setup-status"></div>
 
                 <div class="form-group">
-                    <label class="form-label" for="setup-config">Firebase Config (JSON or JS Object)</label>
                     <textarea class="form-input" id="setup-config" style="height: 200px; font-family: monospace; font-size: 12px;" placeholder="// Paste your config here...\nconst firebaseConfig = {\n  apiKey: '...',\n  authDomain: '...',\n  projectId: '...',\n  storageBucket: '...',\n  messagingSenderId: '...',\n  appId: '...'\n};"></textarea>
                 </div>
 

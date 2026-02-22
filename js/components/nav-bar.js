@@ -57,7 +57,7 @@ export function renderNavBar(container, state) {
                 <span>${getSyncLabel(state)}</span>
             </div>
         </div>
-        <button class="nav-hamburger" id="nav-hamburger" aria-label="Toggle menu">☰</button>
+        ${currentView !== 'setup' ? '<button class="nav-hamburger" id="nav-hamburger" aria-label="Toggle menu">☰</button>' : ''}
     `;
 
     const navLinks = document.getElementById('nav-links');
@@ -112,12 +112,12 @@ export function renderNavBar(container, state) {
             if (isOpen) {
                 navLinks.classList.add('open');
                 if (navOverlay) navOverlay.classList.add('open');
-                document.body.style.overflow = 'hidden'; // Prevent scrolling underneath
+                document.documentElement.style.overflow = 'hidden'; // Prevent scrolling underneath
                 hamburger.textContent = '✕';
             } else {
                 navLinks.classList.remove('open');
                 if (navOverlay) navOverlay.classList.remove('open');
-                document.body.style.overflow = ''; // Restore scrolling
+                document.documentElement.style.overflow = ''; // Restore scrolling
                 hamburger.textContent = '☰';
             }
         };
@@ -158,6 +158,7 @@ export function renderNavBar(container, state) {
 }
 
 function getSyncClass(state) {
+    if (window.location.hash === '#/setup') return 'offline';
     if (!state.syncEngine) return '';
     const isOffline = localStorage.getItem('offlineMode') === 'true';
     if (isOffline) return 'offline';

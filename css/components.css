@@ -684,7 +684,6 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: var(--spacing-lg);
-    margin-top: var(--spacing-lg);
     width: 100%;
 }
 
@@ -1780,6 +1779,111 @@
 }
 
 @media (max-width: 480px) {
+    /* ============ SETUP VIEW ============ */
+
+    .setup-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - var(--nav-height) - 64px);
+        padding: var(--spacing-md);
+    }
+
+    .setup-card {
+        width: 100%;
+        max-width: 460px;
+        padding: var(--spacing-2xl) var(--spacing-xl);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .setup-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--gradient-primary);
+    }
+
+    .setup-title {
+        font-size: 24px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        margin-bottom: 0px;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .setup-subtitle {
+        color: var(--color-text-secondary);
+        margin-bottom: var(--spacing-md);
+        font-size: var(--font-size-sm);
+        line-height: 1.6;
+    }
+
+    .setup-status {
+        padding: var(--spacing-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--spacing-md);
+        font-size: var(--font-size-md);
+        font-weight: 500;
+    }
+
+    .setup-status.success {
+        background: var(--color-success-bg);
+        color: var(--color-success);
+        border: 1px solid var(--color-daily-goals-border);
+    }
+
+    .setup-status.error {
+        background: var(--color-error-bg);
+        color: var(--color-error);
+        border: 1px solid var(--color-monthly-goals-border);
+    }
+
+    .setup-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        margin-top: var(--spacing-lg);
+    }
+
+    .setup-actions .btn {
+        flex: 1;
+        padding: 12px;
+    }
+
+    .setup-divider {
+        text-align: center;
+        color: var(--color-text-muted);
+        margin: var(--spacing-lg) 0;
+        font-size: var(--font-size-sm);
+        position: relative;
+    }
+
+    .setup-divider::before,
+    .setup-divider::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 40%;
+        height: 1px;
+        background: var(--color-border);
+    }
+
+    .setup-divider::before {
+        left: 0;
+    }
+
+    .setup-divider::after {
+        right: 0;
+    }
+
+
     .setup-card {
         padding: var(--spacing-md) var(--spacing-md);
     }
@@ -1968,7 +2072,7 @@
     }
 
     .dashboard-section .section-title {
-        margin-bottom: 0px;
+        margin-bottom: var(--spacing-md);
         padding-bottom: var(--spacing-sm);
         border-bottom: 1px solid var(--color-border-light);
     }
@@ -2104,7 +2208,33 @@
         width: 100%;
     }
 
+    .schedule-weekday-toggles {
+        display: flex;
+        gap: 6px;
+        margin-bottom: var(--spacing-md);
+    }
 
+    .weekday-toggle {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--color-text-muted);
+        background: var(--color-bg-hover);
+        border: 1px solid var(--color-border-light);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .weekday-toggle.active {
+        background: var(--color-primary);
+        color: var(--color-bg);
+        border-color: var(--color-primary);
+    }
 }
 
 /* ============ SCHEDULE EDITOR ============ */
